@@ -1,36 +1,208 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stock Controller
+
+A modern, full-featured inventory management application built with Next.js, React, and TypeScript. Scan product barcodes, manage stock movements, track inventory levels, and monitor low-stock alerts in real-time.
+
+## Features
+
+- **📱 Barcode Scanning**: Scan or manually input product barcodes via camera or keyboard
+- **📦 Stock Management**: Track inventory with stock in/out/adjustment movements
+- **⚠️ Low Stock Alerts**: Real-time notifications when products fall below minimum stock levels
+- **📊 Dashboard**: Visual overview of inventory status and recent activity
+- **🔍 Product Details**: Comprehensive product information including pricing and stock history
+- **📝 Activity Log**: Track all inventory movements and changes
+- **🌓 Dark Mode**: Full dark mode support for comfortable use in any lighting
+- **⚡ Offline Support**: Works offline with automatic sync when connection restored
+- **🔄 Multi-Database Support**: Compatible with Firebase, Supabase, and Prisma/SQLite
+
+## Tech Stack
+
+- **Frontend**: Next.js 15+, React 18+, TypeScript
+- **Styling**: Tailwind CSS, PostCSS
+- **UI Components**: Lucide React icons
+- **Database**: 
+  - Prisma ORM
+  - Firebase Realtime Database
+  - Supabase PostgreSQL
+- **State Management**: Zustand (app-store)
+- **Notifications**: Sonner toast library
+- **Utilities**: nanoid, date formatting
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ and npm/yarn/pnpm
+- A modern browser with camera support (for barcode scanning)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd my-app
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
+Configure your database credentials (Firebase, Supabase, or SQLite).
+
+4. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+├── api/                    # API routes
+│   ├── products/          # Product endpoints
+│   └── sync/              # Sync operations
+├── components/            # Reusable React components
+│   ├── scanner/           # Barcode scanner component
+│   ├── stock/             # Stock-related components
+│   └── ui/                # UI components (header, nav)
+├── dashboard/             # Dashboard page
+├── history/               # Activity history page
+├── products/              # Product management pages
+├── scan/                  # Main barcode scanning page
+├── settings/              # Settings page
+├── lib/                   # Utilities and services
+│   ├── db.ts             # Database operations
+│   ├── firebase.ts       # Firebase configuration
+│   ├── supabase.ts       # Supabase configuration
+│   ├── sync.ts           # Sync logic
+│   └── utils.ts          # Utility functions
+├── store/                # Zustand store
+└── types/                # TypeScript type definitions
+```
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+### Scanning Products
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Navigate to the **Scan** page
+2. Allow camera access when prompted
+3. Point camera at barcode, or switch to keyboard mode to paste
+4. Once product is found, choose **Stock In**, **Stock Out**, or view details
+5. Confirm the movement with quantity and optional notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Managing Products
 
-## Deploy on Vercel
+- **View All**: Browse products on the Products page
+- **Create**: Add new products manually or after scanning unknown barcode
+- **Edit**: Update product details, pricing, and minimum stock levels
+- **Delete**: Remove products from inventory
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Dashboard
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Quick overview of low-stock items
+- Recent activity feed
+- Stock movement summary
+- Navigation to all key features
+
+### Sync
+
+Products and movements automatically sync with your database. Check the sync status and manual refresh available in settings.
+
+## Development
+
+### Building
+
+```bash
+npm run build
+npm start
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Database
+
+#### Using Prisma (SQLite)
+```bash
+npx prisma migrate dev
+npx prisma db seed
+```
+
+#### Using Firebase
+Set up Firebase project and configure credentials in `lib/firebase.ts`
+
+#### Using Supabase
+Configure Supabase connection in `lib/supabase.ts`
+
+## Key Components
+
+### BarcodeScanner
+Camera-based barcode scanning with real-time preview.
+
+### StockMovementModal
+Modal for recording stock in/out/adjustment movements with optional notes.
+
+### ProductCard
+Displays product information with quick action buttons.
+
+### LowStockAlert
+Highlights products below minimum stock threshold.
+
+## API Routes
+
+- `GET /api/products` - Fetch all products
+- `GET /api/products/[id]` - Fetch product details
+- `POST /api/products` - Create new product
+- `PUT /api/products/[id]` - Update product
+- `DELETE /api/products/[id]` - Delete product
+- `POST /api/sync` - Trigger sync operation
+
+## Troubleshooting
+
+**Camera not working?**
+- Check browser permissions
+- Ensure HTTPS in production (required for camera access)
+- Try keyboard input mode instead
+
+**Barcode not scanning?**
+- Ensure barcode is in focus and well-lit
+- Try different barcode angles
+- Use keyboard input mode to manually enter barcode
+
+**Sync issues?**
+- Check internet connection
+- Verify database credentials
+- Check browser console for errors
+
+## Contributing
+
+Contributions welcome! Please:
+1. Create a feature branch
+2. Make your changes
+3. Test thoroughly
+4. Submit a pull request
+
+## License
+
+MIT
+
+## Support
+
+For issues and questions, please open an issue on the repository.
