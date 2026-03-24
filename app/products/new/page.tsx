@@ -1,6 +1,7 @@
 'use client';
 // app/products/new/page.tsx
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { nanoid } from 'nanoid';
 import { toast } from 'sonner';
@@ -15,9 +16,7 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { dbSaveProduct } from '@/lib/db';
 import { useProductStore } from '@/store/app-store';
 
-export const dynamic = 'force-dynamic';
-
-export default function NewProductPage() {
+function NewProductContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const upsertProduct = useProductStore((s) => s.upsertProduct);
@@ -48,7 +47,7 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className='min-h-screen bg-slate-950'>
+    <>
       <Header
         title='New Product'
         subtitle='Add to inventory'
@@ -68,6 +67,16 @@ export default function NewProductPage() {
       </main>
 
       <BottomNav />
+    </>
+  );
+}
+
+export default function NewProductPage() {
+  return (
+    <div className='min-h-screen bg-slate-950'>
+      <Suspense fallback={<div className='min-h-screen bg-slate-950' />}>
+        <NewProductContent />
+      </Suspense>
     </div>
   );
 }
