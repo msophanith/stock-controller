@@ -2,6 +2,7 @@
 // app/scan/page.tsx
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -57,6 +58,7 @@ function getMovementToastMessage(type: MovementType, quantity: number): string {
 }
 
 export default function ScanPage() {
+  const router = useRouter();
   const { addToActivityLog } = useProductStore();
   const { mutateAsync: addMovement } = useAddMovement();
 
@@ -147,6 +149,7 @@ export default function ScanPage() {
         <Header
           title="Scan"
           subtitle="Scan a product barcode"
+          onBack={() => router.push("/dashboard")}
           action={
             <button
               onClick={() =>
@@ -178,6 +181,7 @@ export default function ScanPage() {
                 fullScreen
                 onScan={handleBarcodeScan}
                 onClose={() => setScanMode("keyboard")}
+                onBack={() => router.push("/dashboard")}
               />
             ) : (
               <div className="space-y-3">

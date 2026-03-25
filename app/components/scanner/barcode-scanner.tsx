@@ -1,19 +1,54 @@
 "use client";
 // components/scanner/barcode-scanner.tsx
 
-import { useEffect, useRef, useCallback, useState, useId } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  Html5Qrcode,
-  Html5QrcodeResult,
-  Html5QrcodeSupportedFormats,
-} from "html5-qrcode";
-import { X, Flashlight, Camera, Copy, Check, Clock } from "lucide-react";
+  BarcodeScanner as RBSScanner,
+  type DetectedBarcode,
+  useTorch,
+} from "react-barcode-scanner";
+import "react-barcode-scanner/polyfill";
+import {
+  X,
+  Flashlight,
+  Camera,
+  Copy,
+  Check,
+  Clock,
+  ArrowLeft,
+} from "lucide-react";
+
+// --- Patch BarcodeDetector to prevent InvalidStateError crashes ---
+if (globalThis.window !== undefined) {
+  const globalAny = globalThis as any;
+  const originalDetect = globalAny.BarcodeDetector?.prototype?.detect;
+  if (originalDetect) {
+    globalAny.BarcodeDetector.prototype.detect = function (source: any) {
+      try {
+        return originalDetect.call(this, source).catch((err: any) => {
+          if (
+            err.name === "InvalidStateError" ||
+            err.message?.includes("Invalid element or state")
+          ) {
+            return [];
+          }
+          throw err;
+        });
+      } catch (err: any) {
+        if (err.name === "InvalidStateError") return Promise.resolve([]);
+        throw err;
+      }
+    };
+  }
+}
+
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
 
 interface BarcodeScannerProps {
   readonly onScan: (barcode: string) => void;
   readonly onClose?: () => void;
+  readonly onBack?: () => void;
   readonly className?: string;
   readonly fullScreen?: boolean;
 }
@@ -21,26 +56,55 @@ interface BarcodeScannerProps {
 export function BarcodeScanner({
   onScan,
   onClose,
+  onBack,
   className,
   fullScreen = false,
 }: Readonly<BarcodeScannerProps>) {
-  const scannerId = useId();
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerStartedRef = useRef<boolean>(false);
-  const [isStarted, setIsStarted] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [torchOn, setTorchOn] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
   const lastScanRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { isTorchOn, setIsTorchOn, isTorchSupported } = useTorch(false);
   const { barcodeHistory, addBarcodeToHistory, clearBarcodeHistory } =
     useAppStore();
 
-  const handleScan = useCallback(
-    (decodedText: string, _result: Html5QrcodeResult) => {
-      if (decodedText === lastScanRef.current) return;
-      lastScanRef.current = decodedText;
+  // Memoize stable objects to prevent the library from restarting the camera on every render
+  const trackConstraints = useMemo<MediaTrackConstraints>(
+    () => ({
+      facingMode: "environment",
+    }),
+    [],
+  );
+
+  const scanOptions = useMemo(
+    () => ({
+      delay: 300,
+      formats: [
+        "qr_code",
+        "ean_13",
+        "ean_8",
+        "code_128",
+        "code_39",
+        "upc_a",
+        "upc_e",
+        "itf",
+      ],
+    }),
+    [],
+  );
+
+  const handleCapture = useCallback(
+    (barcodes: DetectedBarcode[]) => {
+      if (barcodes.length === 0) return;
+
+      const barcode = barcodes[0];
+      const value = barcode.rawValue;
+
+      if (!value || value === lastScanRef.current) return;
+      lastScanRef.current = value;
 
       // Debounce rapid scans
       clearTimeout(debounceRef.current);
@@ -49,121 +113,29 @@ export function BarcodeScanner({
       }, 2000);
 
       // Add to history
-      addBarcodeToHistory(decodedText);
+      addBarcodeToHistory(value);
 
       // Haptic feedback
       if ("vibrate" in navigator) navigator.vibrate(80);
 
-      onScan(decodedText);
+      onScan(value);
     },
     [onScan, addBarcodeToHistory],
   );
 
-  useEffect(() => {
-    // Wait for DOM to be ready
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Local variable to track if this effect instance is still valid
-    let isMounted = true;
-    const scanner = new Html5Qrcode(scannerId, { verbose: false });
-    scannerRef.current = scanner;
-
-    const initializeScanner = async () => {
-      try {
-        // Ensure the container is empty before starting
-        const scannerElement = document.getElementById(scannerId);
-        if (scannerElement) {
-          scannerElement.innerHTML = "";
-        }
-
-        // Define a broader set of formats for better barcode detection
-        const formats = [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.ITF,
-        ];
-
-        await scanner.start(
-          { facingMode: "environment" },
-          {
-            fps: 15, // Higher isn't always better for barcodes
-            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-              // Larger scanning area makes it more robust
-              const minDim = Math.min(viewfinderWidth, viewfinderHeight);
-              const size = Math.floor(minDim * 0.8);
-              return { width: size, height: size * 0.6 };
-            },
-            aspectRatio: fullScreen ? undefined : 1.777,
-            disableFlip: true, // Speeds up detection
-            formatsToSupport: formats,
-            experimentalFeatures: {
-              useBarCodeDetectorIfSupported: true,
-            },
-          } as any,
-          (text, result) => {
-            if (isMounted) handleScan(text, result);
-          },
-          () => {},
-        );
-
-        if (isMounted) {
-          scannerStartedRef.current = true;
-          setIsStarted(true);
-        } else {
-          // If unmounted during start, stop it immediately
-          await scanner.stop().catch(() => {});
-        }
-      } catch (err) {
-        if (!isMounted) return;
-        console.error("Scanner error:", err);
-        const errorMsg = (err as Error)?.message || String(err);
-        if (errorMsg.includes("permission")) {
-          setError("Camera access denied. Please check permissions.");
-        } else if (
-          errorMsg.includes("not found") ||
-          errorMsg.includes("NotFoundError")
-        ) {
-          setError("No camera found. Please check your device.");
-        } else {
-          setIsStarted(false);
-        }
-      }
-    };
-
-    initializeScanner();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(debounceRef.current);
-      if (scannerStartedRef.current) {
-        scanner.stop().catch((err) => {
-          console.warn("Error stopping scanner during cleanup:", err);
-        });
-      }
-    };
-  }, [handleScan, fullScreen, scannerId]);
-
-  const toggleTorch = useCallback(async () => {
-    const scanner = scannerRef.current;
-    if (!scanner || !isStarted) return;
-    try {
-      const capabilities = scanner.getRunningTrackCapabilities() as any;
-      if (capabilities?.torch) {
-        await (scanner as any).applyVideoConstraints({
-          advanced: [{ torch: !torchOn }],
-        });
-        setTorchOn((v) => !v);
-      }
-    } catch {
-      // torch not supported
+  const handleError = useCallback((err: unknown) => {
+    const errorMsg = (err as Error)?.message || String(err);
+    if (errorMsg.toLowerCase().includes("permission")) {
+      setError("Camera access denied. Please check permissions.");
+    } else if (
+      errorMsg.toLowerCase().includes("not found") ||
+      errorMsg.toLowerCase().includes("notfounderror")
+    ) {
+      setError("No camera found. Please check your device.");
+    } else {
+      setError("Camera unavailable. Please reload and try again.");
     }
-  }, [isStarted, torchOn]);
+  }, []);
 
   if (error) {
     return (
@@ -209,20 +181,23 @@ export function BarcodeScanner({
             ? "w-screen h-screen"
             : "rounded-2xl dark:bg-slate-950 bg-white border dark:border-slate-800 border-slate-200 w-full aspect-video",
         )}
-        ref={containerRef}
       >
-        {/* The actual scanner element — we force its children to behave */}
-        <div
-          id={scannerId}
-          className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
+        {/* react-barcode-scanner renders a <video> element */}
+        <RBSScanner
+          paused={paused}
+          trackConstraints={trackConstraints}
+          options={scanOptions}
+          onCapture={handleCapture}
+          onPlay={() => setIsCameraReady(true)}
+          onError={handleError}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
 
         {/* --- CUSTOM SCANNER UI OVERLAY --- */}
-        {isStarted && (
+        {isCameraReady && (
           <>
-            {/* 1. Backdrop Mask (makes the center clearer) */}
+            {/* 1. Backdrop Mask */}
             <div className="absolute inset-0 pointer-events-none">
-              {/* This creates a 'hole' effect for the scan area */}
               <div className="absolute inset-0 bg-black/40" />
               <div
                 className={cn(
@@ -256,19 +231,29 @@ export function BarcodeScanner({
 
         {/* Exit Fullscreen Button */}
         {fullScreen && (
-          <div className="absolute top-safe-pt left-0 right-0 p-4 flex items-center justify-between z-[60]">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-white text-[10px] font-bold uppercase tracking-widest">
-                Live
-              </span>
+          <div className="absolute top-0 left-0 right-0 p-4 safe-pt flex items-center justify-between z-[60]">
+            <div className="flex items-center gap-3">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-900/80 border border-white/20 text-white backdrop-blur-md active:scale-95 transition-transform shadow-xl"
+                >
+                  <ArrowLeft size={24} />
+                </button>
+              )}
+              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-lg">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+                  Live
+                </span>
+              </div>
             </div>
             {onClose && (
               <button
                 onClick={onClose}
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-black/60 border border-white/20 text-white backdrop-blur-md active:scale-90 transition-transform"
+                className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-900/80 border border-white/20 text-white backdrop-blur-md active:scale-95 transition-transform shadow-xl"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
             )}
           </div>
@@ -295,20 +280,36 @@ export function BarcodeScanner({
             <Clock size={20} />
           </button>
 
-          <button
-            onClick={toggleTorch}
-            className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
-              torchOn
-                ? "bg-amber-500 text-white shadow-lg"
-                : "bg-white/10 text-white hover:bg-white/20",
-            )}
-          >
-            <Flashlight size={20} />
-          </button>
+          {isTorchSupported && (
+            <button
+              onClick={() => setIsTorchOn(!isTorchOn)}
+              className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
+                isTorchOn
+                  ? "bg-amber-500 text-white shadow-lg"
+                  : "bg-white/10 text-white hover:bg-white/20",
+              )}
+            >
+              <Flashlight size={20} />
+            </button>
+          )}
+
+          {fullScreen && (
+            <button
+              onClick={() => setPaused((p) => !p)}
+              className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
+                paused
+                  ? "bg-orange-500 text-white shadow-lg"
+                  : "bg-white/10 text-white hover:bg-white/20",
+              )}
+            >
+              <Camera size={20} />
+            </button>
+          )}
         </div>
 
-        {/* Custom History Popup (Polished) */}
+        {/* Custom History Popup */}
         {showHistory && (
           <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl flex flex-col z-[70] p-6 pt-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between mb-6">

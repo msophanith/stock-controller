@@ -2,16 +2,22 @@
 // components/ui/header.tsx
 
 import { useAppStore } from "@/store/app-store";
-import { Wifi, WifiOff } from "lucide-react";
+import { Wifi, WifiOff, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   readonly title: string;
   readonly subtitle?: string;
+  readonly onBack?: () => void;
   readonly action?: React.ReactNode;
 }
 
-export function Header({ title, subtitle, action }: Readonly<HeaderProps>) {
+export function Header({
+  title,
+  subtitle,
+  onBack,
+  action,
+}: Readonly<HeaderProps>) {
   const { isOnline } = useAppStore();
 
   const getSyncIcon = () => {
@@ -29,8 +35,16 @@ export function Header({ title, subtitle, action }: Readonly<HeaderProps>) {
   };
 
   return (
-    <header className="sticky top-0 z-40 dark:bg-slate-950/90 dark:border-slate-800/60 bg-white/90 border-slate-200/60 backdrop-blur-xl border-b px-4 pt-safe-pt">
-      <div className="flex items-center justify-between py-3">
+    <header className="sticky top-0 z-40 dark:bg-slate-950/90 dark:border-slate-800/60 bg-white/90 border-slate-200/60 backdrop-blur-xl border-b px-4 safe-pt">
+      <div className="flex items-center gap-3 py-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 -ml-1"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold dark:text-slate-100 text-slate-900 truncate leading-tight">
             {title}

@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   title: "CarStock — Parts & Accessories Inventory",
   description: "Offline-first stock control for car accessories shops",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -48,13 +52,6 @@ export default function RootLayout({
       lang="en"
       className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
     >
-      <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
-      </head>
       <body className="font-sans antialiased dark:bg-slate-950 dark:text-slate-100 bg-white text-slate-900 min-h-screen">
         <ThemeProvider>
           <AppProviders>{children}</AppProviders>
