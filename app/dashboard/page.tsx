@@ -99,7 +99,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950">
-        <Header title="CarStock" subtitle="Car Accessories Inventory" />
+        <Header title="Accessory Stock" subtitle="Car Accessories Inventory" />
         <main className="px-4 pt-20 flex flex-col items-center justify-center">
           <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mb-4" />
           <p className="text-slate-400 animate-pulse">Loading dashboard…</p>
@@ -111,7 +111,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      <Header title="CarStock" subtitle="Car Accessories Inventory" />
+      <Header title="Accessories Stock" subtitle="Car Accessories Inventory" />
 
       <main className="px-4 pb-28 pt-4 space-y-6 page-enter">
         {/* Quick actions */}

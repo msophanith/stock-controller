@@ -1,6 +1,6 @@
 {
-  "name": "CarStock — Parts & Accessories Inventory",
-  "short_name": "CarStock",
+  "name": "Accessories Stock — Parts & Accessories Inventory",
+  "short_name": "Accessories",
   "description": "Offline-first stock control for car accessories shops",
   "start_url": "/",
   "display": "standalone",

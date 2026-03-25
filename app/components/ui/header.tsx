@@ -2,8 +2,11 @@
 // components/ui/header.tsx
 
 import { useAppStore } from "@/store/app-store";
-import { Wifi, WifiOff, ArrowLeft } from "lucide-react";
+import { Wifi, WifiOff, ArrowLeft, RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface HeaderProps {
   readonly title: string;
@@ -19,6 +22,24 @@ export function Header({
   action,
 }: Readonly<HeaderProps>) {
   const { isOnline } = useAppStore();
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching();
+  const [isReloading, setIsReloading] = useState(false);
+
+  const handleReload = async () => {
+    if (isReloading) return;
+
+    setIsReloading(true);
+    try {
+      await queryClient.invalidateQueries();
+      toast.success("Data refreshed");
+    } catch (error) {
+      toast.error("Failed to refresh data");
+      console.error(error);
+    } finally {
+      setTimeout(() => setIsReloading(false), 500);
+    }
+  };
 
   const getSyncIcon = () => {
     if (isOnline) {
@@ -56,7 +77,7 @@ export function Header({
           )}
         </div>
 
-        <div className="flex items-center gap-3 ml-4">
+        <div className="flex items-center gap-2 ml-4">
           {/* Connection status */}
           <div
             className={cn(
@@ -69,6 +90,25 @@ export function Header({
             {getSyncIcon()}
             <span className="hidden xs:inline">{getSyncLabel()}</span>
           </div>
+
+          <button
+            onClick={handleReload}
+            disabled={isReloading}
+            className={cn(
+              "w-9 h-9 flex items-center justify-center rounded-full border shadow-sm transition-all active:scale-95",
+              "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              "dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800",
+              isReloading || isFetching > 0
+                ? "cursor-not-allowed opacity-80"
+                : "cursor-pointer",
+            )}
+            title="Reload data"
+          >
+            <RefreshCcw
+              size={16}
+              className={cn((isReloading || isFetching > 0) && "animate-spin")}
+            />
+          </button>
 
           {action}
         </div>

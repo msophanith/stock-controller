@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CarStock — Parts & Accessories Inventory",
+  title: "Accessories Stock — Parts & Accessories Inventory",
   description: "Offline-first stock control for car accessories shops",
   manifest: "/manifest.json",
   icons: {
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "CarStock",
+    title: "Accessories Stock",
   },
   formatDetection: { telephone: false },
 };
