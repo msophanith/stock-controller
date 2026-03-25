@@ -1,19 +1,16 @@
 // app/api/products/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import {
-  getAllProducts,
-  createProduct,
-} from '@/lib/firebaseDb';
+import { NextRequest, NextResponse } from "next/server";
+import { getAllProducts, createProduct } from "@/lib/supabaseDb";
 
 export async function GET(req: NextRequest) {
   try {
     const products = await getAllProducts();
     return NextResponse.json(products);
   } catch (err) {
-    console.error('Error fetching products:', err);
+    console.error("Error fetching products:", err);
     return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
+      { error: "Failed to fetch products" },
+      { status: 500 },
     );
   }
 }
@@ -32,14 +29,14 @@ export async function POST(req: NextRequest) {
       minStock: body.minStock || 5,
       shelf: body.shelf,
       imageUrl: body.imageUrl,
-      unit: body.unit ?? 'pcs',
+      unit: body.unit ?? "pcs",
     });
     return NextResponse.json(product, { status: 201 });
   } catch (err: any) {
-    console.error('Error creating product:', err);
+    console.error("Error creating product:", err);
     return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
+      { error: err.message || "Failed to create product" },
+      { status: 500 },
     );
   }
 }

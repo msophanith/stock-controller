@@ -1,35 +1,41 @@
-'use client';
+"use client";
 // components/scanner/barcode-scanner.tsx
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeResult } from 'html5-qrcode';
-import { X, Flashlight, Camera, Copy, Check, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/app-store';
+import { useEffect, useRef, useCallback, useState, useId } from "react";
+import {
+  Html5Qrcode,
+  Html5QrcodeResult,
+  Html5QrcodeSupportedFormats,
+} from "html5-qrcode";
+import { X, Flashlight, Camera, Copy, Check, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAppStore } from "@/store/app-store";
 
 interface BarcodeScannerProps {
   readonly onScan: (barcode: string) => void;
   readonly onClose?: () => void;
   readonly className?: string;
+  readonly fullScreen?: boolean;
 }
-
-const SCANNER_ID = 'html5qr-scanner';
 
 export function BarcodeScanner({
   onScan,
   onClose,
   className,
+  fullScreen = false,
 }: Readonly<BarcodeScannerProps>) {
+  const scannerId = useId();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerStartedRef = useRef<boolean>(false);
   const [isStarted, setIsStarted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const lastScanRef = useRef<string>('');
+  const lastScanRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
-  const { barcodeHistory, addBarcodeToHistory, clearBarcodeHistory } = useAppStore();
+  const { barcodeHistory, addBarcodeToHistory, clearBarcodeHistory } =
+    useAppStore();
 
   const handleScan = useCallback(
     (decodedText: string, _result: Html5QrcodeResult) => {
@@ -39,75 +45,109 @@ export function BarcodeScanner({
       // Debounce rapid scans
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        lastScanRef.current = '';
+        lastScanRef.current = "";
       }, 2000);
 
       // Add to history
       addBarcodeToHistory(decodedText);
 
       // Haptic feedback
-      if ('vibrate' in navigator) navigator.vibrate(50);
+      if ("vibrate" in navigator) navigator.vibrate(80);
 
       onScan(decodedText);
     },
-    [onScan, addBarcodeToHistory]
+    [onScan, addBarcodeToHistory],
   );
 
   useEffect(() => {
     // Wait for DOM to be ready
     const container = containerRef.current;
-    if (!container) {
-      console.error('Scanner container not found');
-      setError('Scanner element not found. Please reload.');
-      return;
-    }
+    if (!container) return;
 
-    const scanner = new Html5Qrcode(SCANNER_ID, { verbose: false });
+    // Local variable to track if this effect instance is still valid
+    let isMounted = true;
+    const scanner = new Html5Qrcode(scannerId, { verbose: false });
     scannerRef.current = scanner;
-    scannerStartedRef.current = false;
 
     const initializeScanner = async () => {
       try {
-        await scanner.start(
-          { facingMode: 'environment' },
-          {
-            fps: 15,
-            qrbox: { width: 280, height: 140 },
-            aspectRatio: 1.777,
-            disableFlip: false,
-          },
-          handleScan,
-          () => {} // ongoing failure — ignore
-        );
-        scannerStartedRef.current = true;
-        setIsStarted(true);
-      } catch (err) {
-        console.error('Scanner error:', err);
-        const errorMsg = (err as Error)?.message || String(err);
-        if (errorMsg.includes('permission')) {
-          setError('Camera access denied. Please check permissions.');
-        } else if (errorMsg.includes('not found') || errorMsg.includes('NotFoundError')) {
-          setError('No camera found. Please check your device.');
-        } else {
-          setError(`Camera error: ${errorMsg}`);
+        // Ensure the container is empty before starting
+        const scannerElement = document.getElementById(scannerId);
+        if (scannerElement) {
+          scannerElement.innerHTML = "";
         }
-        scannerStartedRef.current = false;
-        setIsStarted(false);
+
+        // Define a broader set of formats for better barcode detection
+        const formats = [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
+        ];
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 15, // Higher isn't always better for barcodes
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+              // Larger scanning area makes it more robust
+              const minDim = Math.min(viewfinderWidth, viewfinderHeight);
+              const size = Math.floor(minDim * 0.8);
+              return { width: size, height: size * 0.6 };
+            },
+            aspectRatio: fullScreen ? undefined : 1.777,
+            disableFlip: true, // Speeds up detection
+            formatsToSupport: formats,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            },
+          } as any,
+          (text, result) => {
+            if (isMounted) handleScan(text, result);
+          },
+          () => {},
+        );
+
+        if (isMounted) {
+          scannerStartedRef.current = true;
+          setIsStarted(true);
+        } else {
+          // If unmounted during start, stop it immediately
+          await scanner.stop().catch(() => {});
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Scanner error:", err);
+        const errorMsg = (err as Error)?.message || String(err);
+        if (errorMsg.includes("permission")) {
+          setError("Camera access denied. Please check permissions.");
+        } else if (
+          errorMsg.includes("not found") ||
+          errorMsg.includes("NotFoundError")
+        ) {
+          setError("No camera found. Please check your device.");
+        } else {
+          setIsStarted(false);
+        }
       }
     };
 
     initializeScanner();
 
     return () => {
+      isMounted = false;
       clearTimeout(debounceRef.current);
-      // Only stop if scanner was successfully started
-      if (scannerRef.current && scannerStartedRef.current) {
+      if (scannerStartedRef.current) {
         scanner.stop().catch((err) => {
-          console.warn('Error stopping scanner:', err);
+          console.warn("Error stopping scanner during cleanup:", err);
         });
       }
     };
-  }, [handleScan]);
+  }, [handleScan, fullScreen, scannerId]);
 
   const toggleTorch = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -129,20 +169,23 @@ export function BarcodeScanner({
     return (
       <div
         className={cn(
-          'flex flex-col items-center justify-center gap-4 p-8 text-center',
-          'dark:text-slate-600 text-slate-400',
-          className
+          "flex flex-col items-center justify-center gap-4 p-8 text-center",
+          "dark:text-slate-600 text-slate-400",
+          fullScreen && "fixed inset-0 z-50 bg-white dark:bg-slate-950",
+          className,
         )}
       >
-        <Camera size={48} className='dark:text-slate-600 text-slate-400' />
+        <Camera size={48} className="dark:text-slate-600 text-slate-400" />
         <div>
-          <p className='dark:text-slate-300 text-slate-700 font-medium'>{error}</p>
-          <p className='dark:text-slate-500 text-slate-500 text-sm mt-1'>
+          <p className="dark:text-slate-300 text-slate-700 font-medium">
+            {error}
+          </p>
+          <p className="dark:text-slate-500 text-slate-500 text-sm mt-1">
             Allow camera access in your browser settings, then reload.
           </p>
         </div>
         {onClose && (
-          <button onClick={onClose} className='btn-secondary'>
+          <button onClick={onClose} className="btn-secondary">
             Close
           </button>
         )}
@@ -151,108 +194,183 @@ export function BarcodeScanner({
   }
 
   return (
-    <div className={cn('relative flex flex-col', className)}>
+    <div
+      className={cn(
+        "relative flex flex-col",
+        fullScreen && "fixed inset-0 z-50 bg-black",
+        className,
+      )}
+    >
       {/* Scanner viewport */}
-      <div className='relative overflow-hidden rounded-2xl dark:bg-slate-950 bg-white border dark:border-slate-800 border-slate-200 w-full aspect-video' ref={containerRef}>
-        <div id={SCANNER_ID} className='w-full h-full' />
+      <div
+        className={cn(
+          "relative overflow-hidden",
+          fullScreen
+            ? "w-screen h-screen"
+            : "rounded-2xl dark:bg-slate-950 bg-white border dark:border-slate-800 border-slate-200 w-full aspect-video",
+        )}
+        ref={containerRef}
+      >
+        {/* The actual scanner element — we force its children to behave */}
+        <div
+          id={scannerId}
+          className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
+        />
 
-        {/* Overlay corners */}
+        {/* --- CUSTOM SCANNER UI OVERLAY --- */}
         {isStarted && (
-          <div className='absolute inset-0 pointer-events-none'>
-            {/* Top-left */}
-            <div className='absolute top-[20%] left-[10%] w-8 h-8 border-t-2 border-l-2 border-orange-400 rounded-tl-md' />
-            {/* Top-right */}
-            <div className='absolute top-[20%] right-[10%] w-8 h-8 border-t-2 border-r-2 border-orange-400 rounded-tr-md' />
-            {/* Bottom-left */}
-            <div className='absolute bottom-[20%] left-[10%] w-8 h-8 border-b-2 border-l-2 border-orange-400 rounded-bl-md' />
-            {/* Bottom-right */}
-            <div className='absolute bottom-[20%] right-[10%] w-8 h-8 border-b-2 border-r-2 border-orange-400 rounded-br-md' />
-            {/* Scan line */}
-            <div className='absolute left-[10%] right-[10%] h-0.5 bg-orange-400/70 top-[50%] scanner-box shadow-[0_0_8px_rgba(251,146,60,0.6)]' />
+          <>
+            {/* 1. Backdrop Mask (makes the center clearer) */}
+            <div className="absolute inset-0 pointer-events-none">
+              {/* This creates a 'hole' effect for the scan area */}
+              <div className="absolute inset-0 bg-black/40" />
+              <div
+                className={cn(
+                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+                  "w-[280px] h-[160px] bg-transparent shadow-[0_0_0_100vmax_rgba(0,0,0,0.5)]",
+                  "rounded-xl border-2 border-white/20",
+                )}
+              />
+            </div>
+
+            {/* 2. Scanning Frame Elements */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[160px] pointer-events-none">
+              {/* Corners */}
+              <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-orange-500 rounded-tl-lg" />
+              <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-orange-500 rounded-tr-lg" />
+              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-orange-500 rounded-bl-lg" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-orange-500 rounded-br-lg" />
+
+              {/* Scanning laser line */}
+              <div className="absolute left-2 right-2 h-0.5 bg-orange-400 shadow-[0_0_10px_#f97316] animate-scan-line-slow top-[10%]" />
+            </div>
+
+            {/* 3. Instruction Text */}
+            <div className="absolute top-[18%] left-0 right-0 text-center pointer-events-none">
+              <p className="text-white/80 text-sm font-medium px-6 py-2 rounded-full inline-block bg-black/40 backdrop-blur-sm">
+                Position barcode within frame
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Exit Fullscreen Button */}
+        {fullScreen && (
+          <div className="absolute top-safe-pt left-0 right-0 p-4 flex items-center justify-between z-[60]">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+                Live
+              </span>
+            </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-black/60 border border-white/20 text-white backdrop-blur-md active:scale-90 transition-transform"
+              >
+                <X size={20} />
+              </button>
+            )}
           </div>
         )}
 
-        {/* Controls overlay */}
-        <div className='absolute bottom-3 right-3 flex gap-2'>
+        {/* Bottom Floating Controls */}
+        <div
+          className={cn(
+            "absolute flex gap-3 z-[60]",
+            fullScreen
+              ? "bottom-10 left-1/2 -translate-x-1/2 p-2 px-4 rounded-3xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              : "bottom-3 right-3",
+          )}
+        >
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={cn(
-              'w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all',
+              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
               showHistory
-                ? 'bg-blue-500/80 border-blue-400 text-white'
-                : 'dark:bg-black/40 bg-white/40 dark:border-white/20 border-slate-400/30 dark:text-white/70 text-slate-700 hover:dark:bg-black/60 hover:bg-white/60'
+                ? "bg-blue-500 text-white shadow-lg"
+                : "bg-white/10 text-white hover:bg-white/20",
             )}
-            title='Barcode history'
           >
-            <Clock size={18} />
+            <Clock size={20} />
           </button>
+
           <button
             onClick={toggleTorch}
             className={cn(
-              'w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all',
+              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
               torchOn
-                ? 'bg-amber-500/80 border-amber-400 text-white'
-                : 'dark:bg-black/40 bg-white/40 dark:border-white/20 border-slate-400/30 dark:text-white/70 text-slate-700 hover:dark:bg-black/60 hover:bg-white/60'
+                ? "bg-amber-500 text-white shadow-lg"
+                : "bg-white/10 text-white hover:bg-white/20",
             )}
           >
-            <Flashlight size={18} />
+            <Flashlight size={20} />
           </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className='w-10 h-10 rounded-full flex items-center justify-center dark:bg-black/40 bg-white/40 backdrop-blur-sm dark:border-white/20 border-slate-400/30 dark:text-white/70 text-slate-700 hover:dark:bg-black/60 hover:bg-white/60'
-            >
-              <X size={18} />
-            </button>
-          )}
         </div>
 
-        {/* Barcode history popup */}
-        {showHistory && barcodeHistory.length > 0 && (
-          <div className='absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col p-4 z-50'>
-            <div className='flex items-center justify-between mb-3'>
-              <h3 className='font-semibold text-white text-sm'>Recent Scans</h3>
+        {/* Custom History Popup (Polished) */}
+        {showHistory && (
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl flex flex-col z-[70] p-6 pt-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-bold text-white text-xl">Recent Scans</h3>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">
+                  Session History
+                </p>
+              </div>
               <button
                 onClick={() => setShowHistory(false)}
-                className='text-slate-400 hover:text-white'
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 text-slate-400 hover:text-white"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
-            <div className='flex-1 overflow-y-auto space-y-2 mb-3'>
-              {barcodeHistory.map((barcode, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    onScan(barcode);
-                    setShowHistory(false);
-                  }}
-                  className='w-full text-left p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 font-mono text-xs text-orange-300 transition-colors'
-                >
-                  {barcode}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={clearBarcodeHistory}
-              className='w-full btn-secondary text-xs py-2'
-            >
-              Clear History
-            </button>
-          </div>
-        )}
 
-        {showHistory && barcodeHistory.length === 0 && (
-          <div className='absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-4 z-50'>
-            <Clock size={32} className='text-slate-500 mb-2' />
-            <p className='text-slate-400 text-sm'>No scan history yet</p>
+            {barcodeHistory.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-600">
+                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4">
+                  <Clock size={32} />
+                </div>
+                <p className="font-medium">No barcodes found yet</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-none">
+                  {barcodeHistory.map((barcode, idx) => (
+                    <button
+                      key={`${barcode}-${idx}`}
+                      onClick={() => {
+                        onScan(barcode);
+                        setShowHistory(false);
+                      }}
+                      className="w-full group flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all"
+                    >
+                      <span className="font-mono text-sm text-orange-400 font-bold">
+                        {barcode}
+                      </span>
+                      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                        <Check size={14} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={clearBarcodeHistory}
+                  className="w-full py-4 mt-6 rounded-2xl bg-white/5 text-slate-400 text-sm font-bold hover:text-red-400 hover:bg-red-500/10 transition-all border border-white/5"
+                >
+                  Clear History
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      <p className='text-center text-sm dark:text-slate-500 text-slate-600 mt-3'>
-        Point camera at a barcode to scan
-      </p>
+      {!fullScreen && (
+        <p className="text-center text-xs dark:text-slate-500 text-slate-600 font-medium uppercase tracking-widest mt-4">
+          Scanning Active
+        </p>
+      )}
     </div>
   );
 }
@@ -266,18 +384,19 @@ interface BarcodeInputProps {
 
 export function BarcodeInput({
   onSubmit,
-  placeholder = 'Enter barcode…',
+  placeholder = "Enter barcode…",
 }: Readonly<BarcodeInputProps>) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const [copiedValue, setCopiedValue] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const { barcodeHistory, addBarcodeToHistory, clearBarcodeHistory } = useAppStore();
+  const { barcodeHistory, addBarcodeToHistory, clearBarcodeHistory } =
+    useAppStore();
 
   const handleSubmit = (barcode: string) => {
     if (barcode.trim()) {
       addBarcodeToHistory(barcode.trim());
       onSubmit(barcode.trim());
-      setValue('');
+      setValue("");
     }
   };
 
@@ -290,37 +409,37 @@ export function BarcodeInput({
   }, [value]);
 
   return (
-    <div className='space-y-3'>
+    <div className="space-y-3">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSubmit(value);
         }}
-        className='flex gap-2'
+        className="flex gap-2"
       >
         <input
-          type='text'
+          type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
-          className='input-field flex-1'
-          autoComplete='off'
-          inputMode='numeric'
+          className="input-field flex-1"
+          autoComplete="off"
+          inputMode="numeric"
         />
         <button
-          type='button'
+          type="button"
           onClick={copyValue}
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
             copiedValue
-              ? 'bg-emerald-500 text-white'
-              : 'dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 bg-slate-200 border-slate-300 text-slate-600 hover:bg-slate-300 border'
+              ? "bg-emerald-500 text-white"
+              : "dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 bg-slate-200 border-slate-300 text-slate-600 hover:bg-slate-300 border",
           )}
-          title='Copy barcode'
+          title="Copy barcode"
         >
           {copiedValue ? <Check size={16} /> : <Copy size={16} />}
         </button>
-        <button type='submit' className='btn-primary px-4'>
+        <button type="submit" className="btn-primary px-4">
           Go
         </button>
       </form>
@@ -330,29 +449,29 @@ export function BarcodeInput({
         <div>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className='w-full text-xs font-medium text-slate-500 hover:text-slate-400 py-2 px-3 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors'
+            className="w-full text-xs font-medium text-slate-500 hover:text-slate-400 py-2 px-3 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
           >
-            <Clock size={14} className='inline mr-1' />
+            <Clock size={14} className="inline mr-1" />
             {barcodeHistory.length} Recent Scans
           </button>
 
           {showHistory && (
-            <div className='mt-2 space-y-1 max-h-40 overflow-y-auto'>
-              {barcodeHistory.map((barcode, idx) => (
+            <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+              {barcodeHistory.map((barcode) => (
                 <button
-                  key={idx}
+                  key={barcode}
                   onClick={() => {
                     handleSubmit(barcode);
                     setShowHistory(false);
                   }}
-                  className='w-full text-left p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 font-mono text-xs text-orange-300 transition-colors'
+                  className="w-full text-left p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 font-mono text-xs text-orange-300 transition-colors"
                 >
                   {barcode}
                 </button>
               ))}
               <button
                 onClick={clearBarcodeHistory}
-                className='w-full text-xs text-slate-500 hover:text-slate-400 py-2 mt-2'
+                className="w-full text-xs text-slate-500 hover:text-slate-400 py-2 mt-2"
               >
                 Clear history
               </button>

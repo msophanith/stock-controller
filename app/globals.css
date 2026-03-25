@@ -117,8 +117,13 @@
   }
 
   @keyframes syncPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 
   /* Scanner overlay */
@@ -127,10 +132,36 @@
   }
 
   @keyframes scanLine {
-    0% { transform: translateY(-100%); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(200px); opacity: 0; }
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(200px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes scanLineSlow {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(120px);
+      opacity: 1;
+    }
+  }
+
+  .animate-scan-line-slow {
+    animation: scanLineSlow 3s ease-in-out infinite;
   }
 
   /* Number font */

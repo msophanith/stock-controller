@@ -1,22 +1,22 @@
 // types/index.ts
 
 export type ProductCategory =
-  | 'Engine Parts'
-  | 'Engine Oils'
-  | 'Filters'
-  | 'Wipers'
-  | 'Lighting'
-  | 'Fluids'
-  | 'Drive Belts'
-  | 'Brakes'
-  | 'Suspension'
-  | 'Electrical'
-  | 'Bodywork'
-  | 'Accessories'
-  | 'Tools'
-  | 'Other';
+  | "Engine Parts"
+  | "Engine Oils"
+  | "Filters"
+  | "Wipers"
+  | "Lighting"
+  | "Fluids"
+  | "Drive Belts"
+  | "Brakes"
+  | "Suspension"
+  | "Electrical"
+  | "Bodywork"
+  | "Accessories"
+  | "Tools"
+  | "Other";
 
-export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT';
+export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT";
 
 export interface Product {
   id: string;
@@ -33,8 +33,6 @@ export interface Product {
   unit: string;
   createdAt: Date | string;
   updatedAt: Date | string;
-  syncedAt?: Date | string | null;
-  isDirty?: boolean;
 }
 
 export interface StockMovement {
@@ -45,21 +43,7 @@ export interface StockMovement {
   note?: string | null;
   reference?: string | null;
   createdAt: Date | string;
-  syncedAt?: Date | string | null;
-  isDirty?: boolean;
-  product?: Product;
-}
-
-export interface SyncLog {
-  id: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
-  table: string;
-  recordId: string;
-  payload: string;
-  synced: boolean;
-  createdAt: Date | string;
-  syncedAt?: Date | string | null;
-  error?: string | null;
+  product?: Product; // For JOINs
 }
 
 export interface DashboardStats {
@@ -68,27 +52,4 @@ export interface DashboardStats {
   lowStockCount: number;
   todayMovements: number;
   outOfStock: number;
-}
-
-// Dexie offline DB types (mirror of Prisma but for IndexedDB)
-export interface OfflineProduct extends Product {
-  _localId?: number;
-  _pendingSync?: boolean;
-  _syncAction?: 'CREATE' | 'UPDATE' | 'DELETE';
-}
-
-export interface OfflineMovement extends StockMovement {
-  _localId?: number;
-  _pendingSync?: boolean;
-}
-
-export interface SyncQueueItem {
-  id?: number;
-  table: 'products' | 'movements';
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
-  recordId: string;
-  payload: string;
-  timestamp: number;
-  retries: number;
-  lastError?: string;
 }

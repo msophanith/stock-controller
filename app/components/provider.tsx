@@ -1,34 +1,22 @@
-'use client';
+"use client";
 // components/providers.tsx
 
-import { useEffect } from 'react';
-import { initSyncListeners } from '@/lib/sync';
-import { useProductStore } from '@/store/app-store';
-import { dbGetAllProducts } from '@/lib/db';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-  const setProducts = useProductStore((s) => s.setProducts);
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+          },
+        },
+      }),
+  );
 
-  useEffect(() => {
-    // Load all products from IndexedDB on mount
-    async function hydrateLocal() {
-      try {
-        const products = await dbGetAllProducts();
-        setProducts(products);
-      } catch (err) {
-        console.error('Failed to load local products:', err);
-      }
-    }
-
-    hydrateLocal();
-
-    // Wire up online/offline sync listeners
-    const cleanup = initSyncListeners();
-
-    return () => {
-      cleanup();
-    };
-  }, [setProducts]);
-
-  return <>{children}</>;
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 }
