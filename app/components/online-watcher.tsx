@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { useAppStore } from "@/store/app-store";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export function OnlineWatcher() {
   const { setIsOnline } = useAppStore();
@@ -17,12 +17,15 @@ export function OnlineWatcher() {
     // 2. Real server check (Supabase)
     try {
       // getSession() is a reliable check that doesn't depend on table existence
-      const { error } = await supabase.auth.getSession();
-      
+      const { error } = await supabaseAdmin.auth.getSession();
+
       if (error) {
         // Check if error is network related (status 0 or message contains "fetch")
         // Note: Any valid response status from server means we are ONLINE
-        if (error.status === 0 || error.message.toLowerCase().includes("fetch")) {
+        if (
+          error.status === 0 ||
+          error.message.toLowerCase().includes("fetch")
+        ) {
           setIsOnline(false);
         } else {
           setIsOnline(true);
@@ -38,7 +41,9 @@ export function OnlineWatcher() {
 
   useEffect(() => {
     // Initial check
-    checkConnection().catch((err) => console.error("Initial check failed:", err));
+    checkConnection().catch((err) =>
+      console.error("Initial check failed:", err),
+    );
 
     // Event listeners for browser state
     const handleOnline = () => checkConnection();
