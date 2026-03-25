@@ -229,6 +229,26 @@ export async function getRecentMovements(
   }
 }
 
+export async function getTodaySales(): Promise<StockMovement[]> {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabaseAdmin
+      .from("StockMovement")
+      .select("*, Product(*)")
+      .eq("type", "OUT")
+      .gte("createdAt", today.toISOString())
+      .order("createdAt", { ascending: false });
+
+    if (error) throw error;
+    return data as unknown as StockMovement[];
+  } catch (error) {
+    console.error("Error fetching today's sales:", error);
+    return [];
+  }
+}
+
 // ─── Bulk operations ──────────────────────────────────────────────────────────
 
 export async function bulkImportProducts(products: Product[]): Promise<void> {

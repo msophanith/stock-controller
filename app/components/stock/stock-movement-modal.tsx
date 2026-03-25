@@ -19,9 +19,9 @@ const movementSchema = z.object({
 type MovementFormData = z.infer<typeof movementSchema>;
 
 interface StockMovementModalProps {
-  product: Product;
-  onSubmit: (data: MovementFormData) => Promise<void>;
-  onClose: () => void;
+  readonly product: Product;
+  readonly onSubmit: (data: MovementFormData) => Promise<void>;
+  readonly onClose: () => void;
 }
 
 const TYPE_CONFIG: Record<
@@ -60,6 +60,7 @@ export function StockMovementModal({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<MovementFormData>({
     resolver: zodResolver(movementSchema),
@@ -153,11 +154,11 @@ export function StockMovementModal({
               <button
                 type="button"
                 onClick={() => {
-                  const el = document.getElementById(
-                    "qty-input",
-                  ) as HTMLInputElement;
-                  const cur = parseInt(el.value) || 1;
-                  if (cur > 1) el.value = String(cur - 1);
+                  if (quantity > 1) {
+                    setValue("quantity", quantity - 1, {
+                      shouldValidate: true,
+                    });
+                  }
                 }}
                 className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-xl font-bold text-slate-300 hover:bg-slate-700 flex items-center justify-center flex-shrink-0"
               >
@@ -174,10 +175,7 @@ export function StockMovementModal({
               <button
                 type="button"
                 onClick={() => {
-                  const el = document.getElementById(
-                    "qty-input",
-                  ) as HTMLInputElement;
-                  el.value = String((parseInt(el.value) || 0) + 1);
+                  setValue("quantity", quantity + 1, { shouldValidate: true });
                 }}
                 className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-xl font-bold text-slate-300 hover:bg-slate-700 flex items-center justify-center flex-shrink-0"
               >

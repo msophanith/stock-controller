@@ -13,9 +13,10 @@ import {
   BoxesIcon,
   Download,
   RefreshCw,
+  TrendingUp,
 } from "lucide-react";
 import { useProductStore } from "@/store/app-store";
-import { useProducts } from "@/lib/queries";
+import { useProducts, useTodaySales } from "@/lib/queries";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import { LowStockAlert } from "@/components/stock/low-stock-alert";
@@ -24,6 +25,7 @@ import {
   formatCurrency,
   getStockStatus,
   exportProductsToCSV,
+  exportSalesToCSV,
   cn,
 } from "@/lib/utils";
 import type { Product } from "@/types";
@@ -32,7 +34,18 @@ export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
   const { data: products = [], isLoading } = useProducts();
+  const { data: todaySales = [] } = useTodaySales();
   const activityLog = useProductStore((s: any) => s.activityLog);
+
+  const todayStats = useMemo(() => {
+    const salesCount = todaySales.length;
+    const totalRevenue = todaySales.reduce(
+      (acc: number, sale: any) =>
+        acc + sale.quantity * (sale.Product?.sellPrice || 0),
+      0,
+    );
+    return { salesCount, totalRevenue };
+  }, [todaySales]);
 
   const stats = useMemo(() => {
     const totalProducts = products.length;
@@ -66,6 +79,20 @@ export default function DashboardPage() {
   }, [products]);
 
   const statCards = [
+    {
+      label: "Today's Sales",
+      value: todayStats.salesCount.toString(),
+      icon: TrendingUp,
+      color: "text-indigo-400",
+      bg: "bg-indigo-500/10 border-indigo-500/20",
+    },
+    {
+      label: "Today's Revenue",
+      value: formatCurrency(todayStats.totalRevenue),
+      icon: DollarSign,
+      color: "text-green-400",
+      bg: "bg-green-500/10 border-green-500/20",
+    },
     {
       label: "Total Products",
       value: stats.totalProducts.toString(),
@@ -203,14 +230,23 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* Export button */}
-        <button
-          onClick={() => exportProductsToCSV(products)}
-          className="w-full btn-secondary py-3 flex items-center justify-center gap-2"
-        >
-          <Download size={18} />
-          Export to CSV
-        </button>
+        {/* Export buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => exportProductsToCSV(products)}
+            className="w-full btn-secondary py-3 flex items-center justify-center gap-2 text-sm"
+          >
+            <Download size={18} />
+            Products CSV
+          </button>
+          <button
+            onClick={() => exportSalesToCSV(todaySales, "today-sales")}
+            className="w-full btn-secondary py-3 flex items-center justify-center gap-2 text-sm"
+          >
+            <Download size={18} />
+            Sales CSV
+          </button>
+        </div>
 
         {/* Empty state */}
         {products.length === 0 && (

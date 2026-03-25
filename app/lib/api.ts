@@ -77,6 +77,10 @@ export async function apiGetRecentMovements(
   return apiFetch<StockMovement[]>(`/api/movements?limit=${limit}`);
 }
 
+export async function apiGetTodaySales(): Promise<StockMovement[]> {
+  return apiFetch<StockMovement[]>("/api/movements/today");
+}
+
 export async function apiAddMovement(
   movement: Partial<StockMovement>,
 ): Promise<StockMovement> {
