@@ -52,9 +52,7 @@ export default function HistoryPage() {
         const productName = m.Product?.name?.toLowerCase() || "";
         const note = m.note?.toLowerCase() || "";
         const ref = m.reference?.toLowerCase() || "";
-        return (
-          productName.includes(q) || note.includes(q) || ref.includes(q)
-        );
+        return productName.includes(q) || note.includes(q) || ref.includes(q);
       });
     }
 
@@ -112,6 +110,123 @@ export default function HistoryPage() {
     return groups;
   }, [filtered]);
 
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-20 flex-col">
+          <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mb-3" />
+          <p className="text-slate-400 animate-pulse">Loading history…</p>
+        </div>
+      );
+    }
+
+    if (filtered.length === 0) {
+      const hasFilter = search || filter !== "ALL";
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Clock
+            size={48}
+            className="text-slate-400 dark:text-slate-700 mb-3"
+          />
+          <p className="text-slate-600 dark:text-slate-400 font-medium">
+            {hasFilter ? "No matching movements" : "No movements yet"}
+          </p>
+          <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">
+            {hasFilter
+              ? "Try adjusting your search or filters"
+              : "Stock movements will appear here"}
+          </p>
+          {hasFilter && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setFilter("ALL");
+              }}
+              className="btn-secondary mt-4 text-sm py-2"
+            >
+              <X size={14} /> Clear filters
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    return grouped.map(({ date, items }) => (
+      <section key={date}>
+        <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">
+          {date}
+        </h2>
+        <div className="space-y-2">
+          {items.map((m) => {
+            const config =
+              movementConfig[m.type as keyof typeof movementConfig] ||
+              movementConfig.ADJUSTMENT;
+            const Icon = config.icon;
+            // @ts-ignore - Product is joined in the API
+            const product = m.Product;
+
+            return (
+              <div key={m.id} className="card p-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
+                      config.bg,
+                    )}
+                  >
+                    <Icon size={16} className={config.color} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        {product ? (
+                          <Link
+                            href={`/products/${product.id}`}
+                            className="font-medium text-slate-900 dark:text-slate-200 text-sm hover:text-orange-400 truncate block"
+                          >
+                            {product.name}
+                          </Link>
+                        ) : (
+                          <p className="font-medium text-slate-600 dark:text-slate-400 text-sm">
+                            Unknown product
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-600 dark:text-slate-500">
+                          {config.label}
+                          {m.note ? ` — ${m.note}` : ""}
+                        </p>
+                        {m.reference && (
+                          <p className="text-xs text-slate-500 dark:text-slate-600 font-mono">
+                            {m.reference}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p
+                          className={cn(
+                            "font-price font-bold text-base",
+                            config.color,
+                          )}
+                        >
+                          {config.sign}
+                          {m.quantity}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-600">
+                          {formatRelativeDate(m.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-transparent">
       <Header title="History" subtitle={`${filtered.length} movements`} />
@@ -162,114 +277,7 @@ export default function HistoryPage() {
       </div>
 
       <main className="px-4 pb-28 pt-4 space-y-6 page-enter">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20 flex-col">
-            <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mb-3" />
-            <p className="text-slate-400 animate-pulse">Loading history…</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Clock
-              size={48}
-              className="text-slate-400 dark:text-slate-700 mb-3"
-            />
-            <p className="text-slate-600 dark:text-slate-400 font-medium">
-              {search || filter !== "ALL"
-                ? "No matching movements"
-                : "No movements yet"}
-            </p>
-            <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">
-              {search || filter !== "ALL"
-                ? "Try adjusting your search or filters"
-                : "Stock movements will appear here"}
-            </p>
-            {(search || filter !== "ALL") && (
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setFilter("ALL");
-                }}
-                className="btn-secondary mt-4 text-sm py-2"
-              >
-                <X size={14} /> Clear filters
-              </button>
-            )}
-          </div>
-        ) : (
-          grouped.map(({ date, items }) => (
-            <section key={date}>
-              <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">
-                {date}
-              </h2>
-              <div className="space-y-2">
-                {items.map((m) => {
-                  const config =
-                    movementConfig[m.type as keyof typeof movementConfig] || movementConfig.ADJUSTMENT;
-                  const Icon = config.icon;
-                  // @ts-ignore - Product is joined in the API
-                  const product = m.Product;
-
-                  return (
-                    <div key={m.id} className="card p-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
-                            config.bg,
-                          )}
-                        >
-                          <Icon size={16} className={config.color} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              {product ? (
-                                <Link
-                                  href={`/products/${product.id}`}
-                                  className="font-medium text-slate-900 dark:text-slate-200 text-sm hover:text-orange-400 truncate block"
-                                >
-                                  {product.name}
-                                </Link>
-                              ) : (
-                                <p className="font-medium text-slate-600 dark:text-slate-400 text-sm">
-                                  Unknown product
-                                </p>
-                              )}
-                              <p className="text-xs text-slate-600 dark:text-slate-500">
-                                {config.label}
-                                {m.note ? ` — ${m.note}` : ""}
-                              </p>
-                              {m.reference && (
-                                <p className="text-xs text-slate-500 dark:text-slate-600 font-mono">
-                                  {m.reference}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <p
-                                className={cn(
-                                  "font-price font-bold text-base",
-                                  config.color,
-                                )}
-                              >
-                                {config.sign}
-                                {m.quantity}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-600">
-                                {formatRelativeDate(m.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))
-        )}
+        {renderContent()}
       </main>
 
       <BottomNav />
