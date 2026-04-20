@@ -7,6 +7,7 @@ import {
   apiDeleteProduct,
   apiAddMovement,
   apiGetRecentMovements,
+  apiGetTodaySales,
 } from "./api";
 
 export const QUERY_KEYS = {
@@ -49,6 +50,13 @@ export function useRecentMovements() {
   });
 }
 
+export function useTodaySales() {
+  return useQuery({
+    queryKey: ["movements", "today"],
+    queryFn: () => apiGetTodaySales(),
+  });
+}
+
 // --- MUTATIONS ---
 
 export function useSaveProduct() {
@@ -85,6 +93,7 @@ export function useAddMovement() {
     onSuccess: (data, variables) => {
       // Invalidate movements
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.movements });
+      queryClient.invalidateQueries({ queryKey: ["movements", "today"] });
       if (variables.productId) {
         queryClient.invalidateQueries({
           queryKey: QUERY_KEYS.movement(variables.productId),

@@ -1,155 +1,253 @@
 // lib/utils.ts
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-import { nanoid } from 'nanoid'
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { v4 as uuidv4 } from "uuid";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 }
 
 export function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return '—'
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date))
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
 }
 
 export function formatRelativeDate(date: Date | string): string {
-  const d = new Date(date)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMins = Math.floor(diffMs / 60_000)
-  const diffHours = Math.floor(diffMins / 60)
-  const diffDays = Math.floor(diffHours / 24)
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60_000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  return formatDate(date)
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(date);
 }
 
 export function generateId(): string {
-  return nanoid()
+  return uuidv4();
 }
 
 export function getStockStatus(
   quantity: number,
-  minStock: number
-): 'out' | 'low' | 'ok' | 'good' {
-  if (quantity === 0) return 'out'
-  if (quantity <= minStock) return 'low'
-  if (quantity <= minStock * 2) return 'ok'
-  return 'good'
+  minStock: number,
+): "out" | "low" | "ok" | "good" {
+  if (quantity === 0) return "out";
+  if (quantity <= minStock) return "low";
+  if (quantity <= minStock * 2) return "ok";
+  return "good";
 }
 
-export function getStockStatusColor(status: ReturnType<typeof getStockStatus>): string {
+export function getStockStatusColor(
+  status: ReturnType<typeof getStockStatus>,
+): string {
   switch (status) {
-    case 'out':
-      return 'text-red-400 bg-red-500/20 border-red-500/30'
-    case 'low':
-      return 'text-amber-400 bg-amber-500/20 border-amber-500/30'
-    case 'ok':
-      return 'text-blue-400 bg-blue-500/20 border-blue-500/30'
-    case 'good':
-      return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30'
+    case "out":
+      return "text-red-400 bg-red-500/20 border-red-500/30";
+    case "low":
+      return "text-amber-400 bg-amber-500/20 border-amber-500/30";
+    case "ok":
+      return "text-blue-400 bg-blue-500/20 border-blue-500/30";
+    case "good":
+      return "text-emerald-400 bg-emerald-500/20 border-emerald-500/30";
   }
 }
 
 export const PRODUCT_CATEGORIES = [
-  'Engine Parts',
-  'Engine Oils',
-  'Filters',
-  'Wipers',
-  'Lighting',
-  'Fluids',
-  'Drive Belts',
-  'Brakes',
-  'Suspension',
-  'Electrical',
-  'Bodywork',
-  'Accessories',
-  'Tools',
-  'Other',
-] as const
+  "Engine Parts",
+  "Engine Oils",
+  "Filters",
+  "Wipers",
+  "Lighting",
+  "Fluids",
+  "Drive Belts",
+  "Brakes",
+  "Suspension",
+  "Electrical",
+  "Bodywork",
+  "Accessories",
+  "Tools",
+  "Other",
+] as const;
 
-export const PRODUCT_UNITS = ['pcs', 'set', 'L', 'ml', 'kg', 'g', 'm', 'pair', 'roll'] as const
+export const PRODUCT_UNITS = [
+  "pcs",
+  "set",
+  "L",
+  "ml",
+  "kg",
+  "g",
+  "m",
+  "pair",
+  "roll",
+] as const;
 
 export function exportProductsToCSV(products: any[]): void {
   if (products.length === 0) {
-    alert('No products to export')
-    return
+    alert("No products to export");
+    return;
   }
 
   // Define CSV headers
   const headers = [
-    'Barcode',
-    'Product Name',
-    'Category',
-    'Description',
-    'Buy Price',
-    'Sell Price',
-    'Current Stock',
-    'Min Stock',
-    'Unit',
-    'Shelf/Location',
-    'Stock Value',
-    'Created Date',
-    'Last Updated',
-  ]
+    "Barcode",
+    "Product Name",
+    "Category",
+    "Description",
+    "Buy Price",
+    "Sell Price",
+    "Current Stock",
+    "Min Stock",
+    "Unit",
+    "Shelf/Location",
+    "Stock Value",
+    "Created Date",
+    "Last Updated",
+  ];
 
   // Map products to CSV rows
   const rows = products.map((p) => [
-    p.barcode || '',
-    p.name || '',
-    p.category || '',
-    p.description || '',
-    p.buyPrice || '0',
-    p.sellPrice || '0',
-    p.quantity || '0',
-    p.minStock || '0',
-    p.unit || 'pcs',
-    p.shelf || '',
+    p.barcode || "",
+    p.name || "",
+    p.category || "",
+    p.description || "",
+    p.buyPrice || "0",
+    p.sellPrice || "0",
+    p.quantity || "0",
+    p.minStock || "0",
+    p.unit || "pcs",
+    p.shelf || "",
     (p.sellPrice * p.quantity).toFixed(2),
     formatDate(p.createdAt),
     formatDate(p.updatedAt),
-  ])
+  ]);
 
   // Combine headers and rows
   const csv = [
-    headers.join(','),
+    headers.join(","),
     ...rows.map((row) =>
       row
         .map((cell) => {
           // Escape quotes and wrap in quotes if contains comma
-          const escaped = String(cell).replace(/"/g, '""')
-          return escaped.includes(',') ? `"${escaped}"` : escaped
+          const escaped = String(cell).replace(/"/g, '""');
+          return escaped.includes(",") ? `"${escaped}"` : escaped;
         })
-        .join(',')
+        .join(","),
     ),
-  ].join('\n')
+  ].join("\n");
 
   // Create blob and download
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
 
-  link.setAttribute('href', url)
-  link.setAttribute('download', `car-stock-${new Date().toISOString().split('T')[0]}.csv`)
-  link.style.visibility = 'hidden'
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `car-stock-${new Date().toISOString().split("T")[0]}.csv`,
+  );
+  link.style.visibility = "hidden";
 
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
+  if (sales.length === 0) {
+    alert("No sales to export");
+    return;
+  }
+
+  // Define CSV headers
+  const headers = [
+    "Date",
+    "Time",
+    "Product Name",
+    "Barcode",
+    "Quantity Sold",
+    "Sell Price",
+    "Total Amount",
+  ];
+
+  // Map sales to CSV rows
+  const rows = sales.map((s) => {
+    const d = new Date(s.createdAt);
+    const dateStr = d.toLocaleDateString("en-GB");
+    const timeStr = d.toLocaleTimeString("en-GB");
+    const productName = s.Product?.name || "Unknown Product";
+    const barcode = s.Product?.barcode || "";
+    const quantity = s.quantity || 0;
+    const sellPrice = s.Product?.sellPrice || 0;
+    const total = quantity * sellPrice;
+
+    return [
+      dateStr,
+      timeStr,
+      productName,
+      barcode,
+      quantity.toString(),
+      sellPrice.toFixed(2),
+      total.toFixed(2),
+    ];
+  });
+
+  // Calculate total amount earned
+  const totalEarned = sales.reduce((acc, s) => {
+    const quantity = s.quantity || 0;
+    const sellPrice = s.Product?.sellPrice || 0;
+    return acc + quantity * sellPrice;
+  }, 0);
+
+  // Combine headers and rows
+  const csvRows = [
+    `"Sales Report: ${title}",,,,,,`,
+    `"Generated at: ${new Date().toLocaleString("en-GB")}",,,,,,`,
+    `,,,,,,`,
+    headers.join(","),
+    ...rows.map((row) =>
+      row
+        .map((cell) => {
+          const escaped = String(cell).replace(/"/g, '""');
+          return escaped.includes(",") ? `"${escaped}"` : escaped;
+        })
+        .join(","),
+    ),
+    `,,,,,,`,
+    `,,,,,Grand Total,${totalEarned.toFixed(2)}`,
+  ];
+
+  const csv = csvRows.join("\n");
+
+  // Create blob and download
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `${title}-${new Date().toISOString().split("T")[0]}.csv`,
+  );
+  link.style.visibility = "hidden";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

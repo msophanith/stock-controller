@@ -1,6 +1,6 @@
 // lib/supabaseDb.ts
 // Supabase operations (HTTP/HTTPS) to bypass port-blocking firewalls
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabase as supabaseAdmin } from "./supabaseAdmin";
 import type { Product, StockMovement } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -225,6 +225,26 @@ export async function getRecentMovements(
     return data as unknown as StockMovement[];
   } catch (error) {
     console.error("Error fetching recent movements:", error);
+    return [];
+  }
+}
+
+export async function getTodaySales(): Promise<StockMovement[]> {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabaseAdmin
+      .from("StockMovement")
+      .select("*, Product(*)")
+      .eq("type", "OUT")
+      .gte("createdAt", today.toISOString())
+      .order("createdAt", { ascending: false });
+
+    if (error) throw error;
+    return data as unknown as StockMovement[];
+  } catch (error) {
+    console.error("Error fetching today's sales:", error);
     return [];
   }
 }

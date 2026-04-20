@@ -56,14 +56,11 @@ export default function RootLayout({
         <ThemeProvider>
           <AppProviders>{children}</AppProviders>
           <Toaster
-            theme="dark"
             position="top-center"
+            richColors
             toastOptions={{
-              style: {
-                background: "#1e293b",
-                border: "1px solid #334155",
-                color: "#f1f5f9",
-              },
+              className:
+                "dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100",
             }}
           />
         </ThemeProvider>

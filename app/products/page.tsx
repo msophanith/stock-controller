@@ -1,10 +1,13 @@
 "use client";
 // app/products/page.tsx
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Search, Plus, Filter, X, Download, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Plus, Filter, X, Download, RefreshCw, Usb } from "lucide-react";
 import { useProducts } from "@/lib/queries";
+import { useDebounce, useBarcodeScannerListener } from "@/lib/hooks";
+import { toast } from "sonner";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import { ProductCard } from "@/components/stock/product-card";
@@ -36,6 +39,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function ProductsPage() {
+  const router = useRouter();
   const { data: products = [], isLoading } = useProducts();
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
@@ -48,8 +52,35 @@ export default function ProductsPage() {
   } | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Physical barcode scanner → navigate to product detail
+  const handleHardwareScan = useCallback(
+    (barcode: string) => {
+      const match = products.find(
+        (p: Product) => p.barcode === barcode,
+      );
+      if (match) {
+        toast.success(`Found: ${match.name}`);
+        router.push(`/products/${match.id}`);
+      } else {
+        toast.info(`Barcode "${barcode}" not found`, {
+          action: {
+            label: "Add product",
+            onClick: () =>
+              router.push(
+                `/products/new?barcode=${encodeURIComponent(barcode)}`,
+              ),
+          },
+        });
+      }
+    },
+    [products, router],
+  );
+  useBarcodeScannerListener(handleHardwareScan);
+
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     let results = products.filter((p: Product) => {
       const matchesSearch =
         !q ||
@@ -102,7 +133,7 @@ export default function ProductsPage() {
     });
 
     return results;
-  }, [products, search, stockFilter, categoryFilter, sortBy, priceRange]);
+  }, [products, debouncedSearch, stockFilter, categoryFilter, sortBy, priceRange]);
 
   const hasActiveFilters =
     stockFilter !== "all" ||
@@ -131,7 +162,7 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950">
+      <div className="min-h-screen bg-transparent">
         <Header title="Products" subtitle="Loading…" />
         <main className="px-4 pt-20 flex flex-col items-center justify-center">
           <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mb-4" />
@@ -236,7 +267,7 @@ export default function ProductsPage() {
 
         {/* Advanced filters & sort */}
         {showFilters && (
-          <div className="space-y-2 pt-2 border-t border-slate-700">
+          <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
             {/* Sort dropdown */}
             <div>
               <label
@@ -262,14 +293,14 @@ export default function ProductsPage() {
             {/* Price range toggle */}
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="w-full text-xs font-medium text-slate-500 hover:text-slate-400 py-2 px-3 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors text-left"
+              className="w-full text-xs font-medium text-slate-500 hover:text-slate-400 py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors text-left"
             >
               {showAdvancedFilters ? "−" : "+"} Advanced Filters
             </button>
 
             {/* Price range input */}
             {showAdvancedFilters && (
-              <div className="bg-slate-800/30 p-3 rounded-lg space-y-2">
+              <div className="bg-slate-100 dark:bg-slate-800/30 p-3 rounded-lg space-y-2">
                 <p className="text-xs text-slate-400">Price Range</p>
                 <div className="flex gap-2">
                   <input
@@ -313,13 +344,13 @@ export default function ProductsPage() {
             {/* Stats */}
             {filtered.length > 0 && (
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-800/30 p-2 rounded-lg">
+                <div className="bg-slate-100 dark:bg-slate-800/30 p-2 rounded-lg">
                   <p className="text-slate-500">Stock Value</p>
                   <p className="font-bold text-emerald-400">
                     ${stats.totalValue.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-slate-800/30 p-2 rounded-lg">
+                <div className="bg-slate-100 dark:bg-slate-800/30 p-2 rounded-lg">
                   <p className="text-slate-500">Avg Margin</p>
                   <p className="font-bold text-blue-400">{stats.avgMargin}%</p>
                 </div>

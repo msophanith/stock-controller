@@ -8,10 +8,13 @@ import {
   SlidersHorizontal,
   Clock,
   RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
+import { useDebounce } from "@/lib/hooks";
 import type { StockMovement } from "@/types";
 import { formatRelativeDate, cn } from "@/lib/utils";
 import { useRecentMovements } from "@/lib/queries";
@@ -28,12 +31,33 @@ const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
 export default function HistoryPage() {
   const { data: movements = [], isLoading } = useRecentMovements();
   const [filter, setFilter] = useState<FilterType>("ALL");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
-  const filtered = useMemo(
-    () =>
-      filter === "ALL" ? movements : movements.filter((m) => m.type === filter),
-    [movements, filter],
-  );
+  const filtered = useMemo(() => {
+    let results = movements;
+
+    // Filter by type
+    if (filter !== "ALL") {
+      results = results.filter((m) => m.type === filter);
+    }
+
+    // Search by product name, note, or reference
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      results = results.filter((m) => {
+        // @ts-ignore - Product is joined in the API
+        const productName = m.Product?.name?.toLowerCase() || "";
+        const note = m.note?.toLowerCase() || "";
+        const ref = m.reference?.toLowerCase() || "";
+        return (
+          productName.includes(q) || note.includes(q) || ref.includes(q)
+        );
+      });
+    }
+
+    return results;
+  }, [movements, filter, debouncedSearch]);
 
   const movementConfig = {
     IN: {
@@ -80,10 +104,33 @@ export default function HistoryPage() {
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-transparent">
       <Header title="History" subtitle={`${filtered.length} movements`} />
 
-      <div className="sticky top-[57px] z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/60 px-4 py-3">
+      <div className="sticky top-[57px] z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/60 px-4 py-3 space-y-2">
+        {/* Search */}
+        <div className="relative">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by product, note, reference…"
+            className="input-field pl-9 pr-9 py-2.5 text-sm"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Filter pills */}
         <div className="flex gap-2">
           {FILTER_OPTIONS.map(({ value, label }) => {
             const isActive = filter === value;
@@ -118,11 +165,26 @@ export default function HistoryPage() {
               className="text-slate-400 dark:text-slate-700 mb-3"
             />
             <p className="text-slate-600 dark:text-slate-400 font-medium">
-              No movements yet
+              {search || filter !== "ALL"
+                ? "No matching movements"
+                : "No movements yet"}
             </p>
             <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">
-              Stock movements will appear here
+              {search || filter !== "ALL"
+                ? "Try adjusting your search or filters"
+                : "Stock movements will appear here"}
             </p>
+            {(search || filter !== "ALL") && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setFilter("ALL");
+                }}
+                className="btn-secondary mt-4 text-sm py-2"
+              >
+                <X size={14} /> Clear filters
+              </button>
+            )}
           </div>
         ) : (
           grouped.map(({ date, items }) => (
@@ -170,7 +232,7 @@ export default function HistoryPage() {
                                 {m.note ? ` — ${m.note}` : ""}
                               </p>
                               {m.reference && (
-                                <p className="text-xs text-slate-600 dark:text-slate-600 font-mono">
+                                <p className="text-xs text-slate-500 dark:text-slate-600 font-mono">
                                   {m.reference}
                                 </p>
                               )}
@@ -185,7 +247,7 @@ export default function HistoryPage() {
                                 {config.sign}
                                 {m.quantity}
                               </p>
-                              <p className="text-xs text-slate-600 dark:text-slate-600">
+                              <p className="text-xs text-slate-500 dark:text-slate-600">
                                 {formatRelativeDate(m.createdAt)}
                               </p>
                             </div>

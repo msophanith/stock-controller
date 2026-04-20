@@ -22,6 +22,7 @@ import {
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import { StockMovementModal } from "@/components/stock/stock-movement-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   formatCurrency,
   formatRelativeDate,
@@ -30,7 +31,7 @@ import {
   cn,
 } from "@/lib/utils";
 import { useProduct, useAddMovement, useDeleteProduct } from "@/lib/queries";
-import type { StockMovement } from "@/types";
+import type { StockMovement, StockMovementType } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,9 @@ export default function ProductDetailPage() {
   const { mutateAsync: deleteProduct } = useDeleteProduct();
 
   const [showMovementModal, setShowMovementModal] = useState(false);
+  const [preselectedType, setPreselectedType] =
+    useState<StockMovementType>("IN");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedBarcode, setCopiedBarcode] = useState(false);
 
@@ -65,13 +69,13 @@ export default function ProductDetailPage() {
 
   if (isError || !product) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center px-6">
           <Package
             size={48}
-            className="text-slate-700 dark:text-slate-700 mx-auto mb-3"
+            className="text-slate-400 dark:text-slate-700 mx-auto mb-3"
           />
-          <h2 className="text-xl font-bold text-slate-200 mb-2">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-200 mb-2">
             Product not found
           </h2>
           <p className="text-slate-500 max-w-xs mx-auto">
@@ -126,8 +130,12 @@ export default function ProductDetailPage() {
     }
   }
 
+  function openMovementModal(type: StockMovementType) {
+    setPreselectedType(type);
+    setShowMovementModal(true);
+  }
+
   async function handleDelete() {
-    if (!confirm(`Delete "${product?.name}"? This cannot be undone.`)) return;
     setIsDeleting(true);
     try {
       await deleteProduct(product!.id);
@@ -136,6 +144,7 @@ export default function ProductDetailPage() {
     } catch {
       toast.error("Failed to delete product");
       setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   }
 
@@ -171,7 +180,7 @@ export default function ProductDetailPage() {
               <Edit2 size={15} />
             </Link>
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
               className="btn-danger py-2 px-3 text-sm"
             >
@@ -232,24 +241,24 @@ export default function ProductDetailPage() {
           )}
         </div>
 
-        {/* Stock actions */}
+        {/* Stock actions — now pre-selects movement type */}
         <div className="grid grid-cols-3 gap-2">
           <button
-            onClick={() => setShowMovementModal(true)}
+            onClick={() => openMovementModal("IN")}
             className="btn-success flex-col py-4 gap-1.5 text-sm"
           >
             <TrendingUp size={22} />
             Stock In
           </button>
           <button
-            onClick={() => setShowMovementModal(true)}
+            onClick={() => openMovementModal("OUT")}
             className="btn-danger flex-col py-4 gap-1.5 text-sm"
           >
             <TrendingDown size={22} />
             Stock Out
           </button>
           <button
-            onClick={() => setShowMovementModal(true)}
+            onClick={() => openMovementModal("ADJUSTMENT")}
             className="btn-secondary flex-col py-4 gap-1.5 text-sm"
           >
             <SlidersHorizontal size={22} />
@@ -263,11 +272,11 @@ export default function ProductDetailPage() {
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">
               Buy Price
             </p>
-            <p className="font-price font-bold text-slate-300 dark:text-slate-300">
+            <p className="font-price font-bold text-slate-700 dark:text-slate-300">
               {formatCurrency(product.buyPrice)}
             </p>
           </div>
-          <div className="text-center border-x border-slate-800 dark:border-slate-800">
+          <div className="text-center border-x border-slate-200 dark:border-slate-800">
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">
               Sell Price
             </p>
@@ -299,36 +308,36 @@ export default function ProductDetailPage() {
               <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">
                 Description
               </p>
-              <p className="text-sm text-slate-300 dark:text-slate-300">
+              <p className="text-sm text-slate-700 dark:text-slate-300">
                 {product.description}
               </p>
             </div>
           )}
           <div className="flex items-center gap-4 text-sm">
             {product.shelf && (
-              <span className="flex items-center gap-1.5 text-slate-400 dark:text-slate-400">
+              <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                 <MapPin
                   size={14}
-                  className="text-slate-500 dark:text-slate-500"
+                  className="text-slate-400 dark:text-slate-500"
                 />
                 Shelf:{" "}
-                <strong className="text-slate-200 dark:text-slate-200">
+                <strong className="text-slate-900 dark:text-slate-200">
                   {product.shelf}
                 </strong>
               </span>
             )}
-            <span className="flex items-center gap-1.5 text-slate-400 dark:text-slate-400">
+            <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
               <Package
                 size={14}
-                className="text-slate-500 dark:text-slate-500"
+                className="text-slate-400 dark:text-slate-500"
               />
               Unit:{" "}
-              <strong className="text-slate-200 dark:text-slate-200">
+              <strong className="text-slate-900 dark:text-slate-200">
                 {product.unit}
               </strong>
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-600">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-600">
             <Clock size={11} />
             Updated {formatRelativeDate(product.updatedAt)}
           </div>
@@ -336,7 +345,7 @@ export default function ProductDetailPage() {
 
         {/* Movement history */}
         <section>
-          <h2 className="text-sm font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3">
             Movement History
           </h2>
           {movements.length === 0 ? (
@@ -372,7 +381,7 @@ export default function ProductDetailPage() {
                           }
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-200 dark:text-slate-200">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-200">
                             {label}
                           </p>
                           {m.note && (
@@ -381,7 +390,7 @@ export default function ProductDetailPage() {
                             </p>
                           )}
                           {m.reference && (
-                            <p className="text-xs text-slate-600 dark:text-slate-600 font-mono">
+                            <p className="text-xs text-slate-500 dark:text-slate-600 font-mono">
                               {m.reference}
                             </p>
                           )}
@@ -397,7 +406,7 @@ export default function ProductDetailPage() {
                           {prefix}
                           {m.quantity}
                         </p>
-                        <p className="text-xs text-slate-600 dark:text-slate-600">
+                        <p className="text-xs text-slate-500 dark:text-slate-600">
                           {formatRelativeDate(m.createdAt)}
                         </p>
                       </div>
@@ -415,10 +424,22 @@ export default function ProductDetailPage() {
       {showMovementModal && (
         <StockMovementModal
           product={product}
+          defaultType={preselectedType}
           onSubmit={handleMovement}
           onClose={() => setShowMovementModal(false)}
         />
       )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${product.name}"? This will also remove all stock movement history. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

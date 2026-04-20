@@ -38,11 +38,14 @@ export async function apiGetProductById(
 export async function apiGetProductByBarcode(
   barcode: string,
 ): Promise<Product | null> {
-  // We can add a specialized search or just fetch all and filter client side
-  // but better to have an API. Let's assume we use /api/products/[id] search?
-  // For now, we'll fetch all and filter or add a search API.
-  const products = await apiGetAllProducts();
-  return products.find((p) => p.barcode === barcode) || null;
+  try {
+    return await apiFetch<Product>(
+      `/api/products/barcode/${encodeURIComponent(barcode)}`,
+    );
+  } catch {
+    // 404 means product not found — that's expected
+    return null;
+  }
 }
 
 export async function apiSaveProduct(
@@ -75,6 +78,10 @@ export async function apiGetRecentMovements(
   limit = 100,
 ): Promise<StockMovement[]> {
   return apiFetch<StockMovement[]>(`/api/movements?limit=${limit}`);
+}
+
+export async function apiGetTodaySales(): Promise<StockMovement[]> {
+  return apiFetch<StockMovement[]>("/api/movements/today");
 }
 
 export async function apiAddMovement(

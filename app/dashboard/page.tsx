@@ -1,7 +1,7 @@
 "use client";
 // app/dashboard/page.tsx
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Package,
@@ -13,9 +13,12 @@ import {
   BoxesIcon,
   Download,
   RefreshCw,
+  TrendingUp,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useProductStore } from "@/store/app-store";
-import { useProducts } from "@/lib/queries";
+import { useProducts, useTodaySales } from "@/lib/queries";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import { LowStockAlert } from "@/components/stock/low-stock-alert";
@@ -24,6 +27,7 @@ import {
   formatCurrency,
   getStockStatus,
   exportProductsToCSV,
+  exportSalesToCSV,
   cn,
 } from "@/lib/utils";
 import type { Product } from "@/types";
@@ -32,7 +36,19 @@ export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
   const { data: products = [], isLoading } = useProducts();
+  const { data: todaySales = [] } = useTodaySales();
   const activityLog = useProductStore((s: any) => s.activityLog);
+  const [showAmount, setShowAmount] = useState(false);
+
+  const todayStats = useMemo(() => {
+    const salesCount = todaySales.length;
+    const totalRevenue = todaySales.reduce(
+      (acc: number, sale: any) =>
+        acc + sale.quantity * (sale.Product?.sellPrice || 0),
+      0,
+    );
+    return { salesCount, totalRevenue };
+  }, [todaySales]);
 
   const stats = useMemo(() => {
     const totalProducts = products.length;
@@ -67,38 +83,38 @@ export default function DashboardPage() {
 
   const statCards = [
     {
-      label: "Total Products",
+      label: "Total Items",
       value: stats.totalProducts.toString(),
       icon: Package,
-      color: "text-blue-400",
+      color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-500/10 border-blue-500/20",
     },
     {
       label: "Stock Value",
       value: formatCurrency(stats.totalValue),
       icon: DollarSign,
-      color: "text-emerald-400",
+      color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-500/10 border-emerald-500/20",
     },
     {
       label: "Low Stock",
       value: stats.lowStockCount.toString(),
       icon: AlertTriangle,
-      color: "text-amber-400",
+      color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-500/10 border-amber-500/20",
     },
     {
       label: "Out of Stock",
       value: stats.outOfStockCount.toString(),
       icon: BoxesIcon,
-      color: "text-red-400",
+      color: "text-red-600 dark:text-red-400",
       bg: "bg-red-500/10 border-red-500/20",
     },
   ];
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950">
+      <div className="min-h-screen bg-transparent">
         <Header title="Accessory Stock" subtitle="Car Accessories Inventory" />
         <main className="px-4 pt-20 flex flex-col items-center justify-center">
           <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mb-4" />
@@ -110,35 +126,102 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-transparent">
       <Header title="Accessories Stock" subtitle="Car Accessories Inventory" />
 
-      <main className="px-4 pb-28 pt-4 space-y-6 page-enter">
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/scan" className="btn-primary py-4 text-base">
-            <ScanLine size={22} />
-            Scan
-          </Link>
-          <Link href="/products/new" className="btn-secondary py-4 text-base">
-            <Plus size={22} />
-            Add Product
-          </Link>
+      <main className="px-4 pb-32 pt-4 space-y-8 page-enter">
+        {/* Modern Hero Card */}
+        <div className="card p-6 md:p-8 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/10 dark:to-pink-500/20 border-indigo-500/20 shadow-xl shadow-indigo-500/5 relative overflow-hidden group">
+          <div className="absolute -top-20 -right-20 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-150" />
+          <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-150" />
+
+          <div className="relative z-10">
+            <div className="mb-2">
+              <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pl-1">
+                Today's Revenue
+              </h2>
+            </div>
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-4xl md:text-5xl font-black font-price tracking-tight bg-gradient-to-r from-indigo-600 to-pink-500 dark:from-indigo-400 dark:to-pink-400 bg-clip-text text-transparent transition-all duration-300">
+                {showAmount
+                  ? formatCurrency(todayStats.totalRevenue)
+                  : "$******"}
+              </span>
+              <button
+                onClick={() => setShowAmount(!showAmount)}
+                className="p-2 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-all flex-shrink-0 mt-1"
+                title={showAmount ? "Hide amount" : "Show amount"}
+              >
+                {showAmount ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 pl-1 mb-6 flex items-center gap-1.5">
+              <TrendingUp
+                size={14}
+                className="text-indigo-500 dark:text-indigo-400"
+              />
+              <span>
+                <span className="text-indigo-500 dark:text-indigo-400 font-bold text-lg">
+                  {todayStats.salesCount}{" "}
+                </span>
+                sale
+                {todayStats.salesCount !== 1 ? "s" : ""} today
+              </span>
+            </p>
+
+            <div className="flex gap-3">
+              <Link
+                href="/scan"
+                className="btn-primary flex-1 py-4 text-base shadow-indigo-500/25 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:from-indigo-700 active:to-purple-800"
+              >
+                <ScanLine size={20} />
+                Quick Scan
+              </Link>
+              <Link
+                href="/products/new"
+                className="btn-secondary flex-1 py-4 text-base border-slate-200/60 dark:border-slate-700/60 shadow-sm backdrop-blur-xl"
+              >
+                <Plus size={20} />
+                Add Item
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Bento Stats grid */}
+        <div className="grid grid-cols-2 gap-4">
           {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-            <div key={label} className={cn("card p-4 border", bg)}>
-              <div className="flex items-start justify-between mb-3">
-                <Icon size={20} className={color} />
+            <div
+              key={label}
+              className={cn(
+                "card p-5 group hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden",
+                bg,
+              )}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 opacity-50 block" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-2xl flex items-center justify-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/5",
+                      color,
+                    )}
+                  >
+                    <Icon size={20} />
+                  </div>
+                </div>
+                <p
+                  className={cn(
+                    "text-2xl font-black font-price tracking-tight mb-0.5",
+                    color,
+                  )}
+                >
+                  {value}
+                </p>
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {label}
+                </p>
               </div>
-              <p className={cn("text-2xl font-bold font-price", color)}>
-                {value}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
-                {label}
-              </p>
             </div>
           ))}
         </div>
@@ -146,7 +229,7 @@ export default function DashboardPage() {
         {/* Low stock alerts */}
         {stats.alertProducts.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3">
+            <h2 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 pl-1">
               Alerts
             </h2>
             <LowStockAlert products={stats.alertProducts} />
@@ -156,13 +239,13 @@ export default function DashboardPage() {
         {/* Recent products with quick actions */}
         {stats.recentProducts.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-3 pl-1">
+              <h2 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                 Recent
               </h2>
               <Link
                 href="/products"
-                className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
+                className="text-xs font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1 transition-colors"
               >
                 All products <ArrowRight size={12} />
               </Link>
@@ -178,39 +261,52 @@ export default function DashboardPage() {
         {/* Activity log */}
         {activityLog.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-3 pl-1">
+              <h2 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                 Recent Activity
               </h2>
               <Link
                 href="/history"
-                className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
+                className="text-xs font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1 transition-colors"
               >
                 View all <ArrowRight size={12} />
               </Link>
             </div>
-            <div className="card p-3 space-y-2 max-h-40 overflow-y-auto">
+            <div className="card p-2 space-y-1 max-h-48 overflow-y-auto backdrop-blur-xl bg-white/40 dark:bg-slate-900/40">
               {activityLog.slice(0, 5).map((log: string, idx: number) => (
                 <div
                   key={`log-${idx}`}
-                  className="flex items-center justify-between text-xs py-1.5 border-b border-slate-700 last:border-b-0"
+                  className="flex items-center gap-3 text-[13px] py-3 px-3 border-b border-slate-200/50 dark:border-slate-800/50 last:border-b-0 hover:bg-white/60 dark:hover:bg-slate-800/60 rounded-xl transition-all duration-200"
                 >
-                  <span className="text-slate-400">{log}</span>
-                  <span className="text-slate-600">now</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                  <span className="font-medium text-slate-700 dark:text-slate-300 flex-1 truncate">
+                    {log}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex-shrink-0">
+                    now
+                  </span>
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* Export button */}
-        <button
-          onClick={() => exportProductsToCSV(products)}
-          className="w-full btn-secondary py-3 flex items-center justify-center gap-2"
-        >
-          <Download size={18} />
-          Export to CSV
-        </button>
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <button
+            onClick={() => exportProductsToCSV(products)}
+            className="w-full btn-secondary py-3.5 flex items-center justify-center gap-2 text-sm bg-white/50 dark:bg-slate-900/50 hover:bg-white/80 dark:hover:bg-slate-800 border-dashed"
+          >
+            <Download size={16} className="text-slate-500" />
+            <span>Products CSV</span>
+          </button>
+          <button
+            onClick={() => exportSalesToCSV(todaySales, "today-sales")}
+            className="w-full btn-secondary py-3.5 flex items-center justify-center gap-2 text-sm bg-white/50 dark:bg-slate-900/50 hover:bg-white/80 dark:hover:bg-slate-800 border-dashed"
+          >
+            <Download size={16} className="text-slate-500" />
+            <span>Sales CSV</span>
+          </button>
+        </div>
 
         {/* Empty state */}
         {products.length === 0 && (
