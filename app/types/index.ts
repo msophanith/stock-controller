@@ -16,7 +16,7 @@ export type ProductCategory =
   | "Tools"
   | "Other";
 
-export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT";
+export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT" | "RETURN";
 
 export interface Product {
   id: string;

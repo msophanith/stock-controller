@@ -177,6 +177,9 @@ export async function addMovement(
         let delta = movement.quantity || 0;
         if (movement.type === "OUT") {
           delta = -delta;
+        } else if (movement.type === "RETURN") {
+          // Returns increase stock
+          delta = Math.abs(delta);
         }
 
         const newQty = Math.max(0, product.quantity + delta);
@@ -237,7 +240,7 @@ export async function getTodaySales(): Promise<StockMovement[]> {
     const { data, error } = await supabaseAdmin
       .from("StockMovement")
       .select("*, Product(*)")
-      .eq("type", "OUT")
+      .in("type", ["OUT", "RETURN"])
       .gte("createdAt", today.toISOString())
       .order("createdAt", { ascending: false });
 

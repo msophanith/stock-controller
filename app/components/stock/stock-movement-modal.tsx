@@ -5,12 +5,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { TrendingUp, TrendingDown, SlidersHorizontal, X } from "lucide-react";
+import { TrendingUp, TrendingDown, SlidersHorizontal, X, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StockMovementType, Product } from "@/types";
 
 const movementSchema = z.object({
-  type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
+  type: z.enum(["IN", "OUT", "ADJUSTMENT", "RETURN"]),
   quantity: z.coerce.number().int().min(1, "Must be at least 1"),
   note: z.string().optional(),
   reference: z.string().optional(),
@@ -47,6 +47,12 @@ const TYPE_CONFIG: Record<
     color: "text-blue-400",
     bg: "bg-blue-500/20 border-blue-500/40",
   },
+  RETURN: {
+    label: "Return",
+    icon: RotateCcw,
+    color: "text-amber-400",
+    bg: "bg-amber-500/20 border-amber-500/40",
+  },
 };
 
 export function StockMovementModal({
@@ -72,7 +78,7 @@ export function StockMovementModal({
 
   const quantity = watch("quantity") || 0;
   const previewQty =
-    selectedType === "IN"
+    selectedType === "IN" || selectedType === "RETURN"
       ? product.quantity + quantity
       : selectedType === "OUT"
         ? Math.max(0, product.quantity - quantity)
@@ -245,7 +251,9 @@ export function StockMovementModal({
                 ? "bg-emerald-500 hover:bg-emerald-400 text-white"
                 : selectedType === "OUT"
                   ? "bg-red-500 hover:bg-red-400 text-white"
-                  : "bg-blue-500 hover:bg-blue-400 text-white",
+                  : selectedType === "RETURN"
+                    ? "bg-amber-500 hover:bg-amber-400 text-white"
+                    : "bg-blue-500 hover:bg-blue-400 text-white",
             )}
           >
             {TYPE_CONFIG[selectedType].icon && (
@@ -254,7 +262,9 @@ export function StockMovementModal({
                   ? "↑"
                   : selectedType === "OUT"
                     ? "↓"
-                    : "⇔"}
+                    : selectedType === "RETURN"
+                      ? "↺"
+                      : "⇔"}
               </span>
             )}
             {isLoading
