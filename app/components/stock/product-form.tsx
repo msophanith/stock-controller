@@ -79,7 +79,7 @@ export function ProductForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-5 dark:bg-slate-900 bg-slate-50 dark:border-slate-800 border-slate-200 border p-5 rounded-xl"
+      className="space-y-6 card p-6 md:p-8"
     >
       {/* Barcode */}
       <div>
@@ -100,7 +100,7 @@ export function ProductForm({
           <button
             type="button"
             onClick={() => setIsScanning(true)}
-            className="w-11 h-11 flex-shrink-0 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+            className="w-[52px] h-[52px] flex-shrink-0 rounded-2xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 active:scale-95 transition-all duration-300 border border-orange-200/50 dark:border-orange-500/20 shadow-sm"
             title="Scan with Camera"
           >
             <ScanLine size={20} />
@@ -191,12 +191,12 @@ export function ProductForm({
       {margin !== null && (
         <div
           className={cn(
-            "text-xs px-3 py-2 rounded-lg border",
+            "text-sm px-4 py-3 rounded-xl border backdrop-blur-sm transition-colors",
             parseFloat(margin) < 0
-              ? "bg-red-500/10 border-red-500/30 text-red-400"
+              ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
               : parseFloat(margin) < 20
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+                ? "bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-400"
+                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
           )}
         >
           Margin: <strong>{margin}%</strong>

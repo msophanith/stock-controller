@@ -196,7 +196,7 @@ export default function ScanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-transparent">
       {!showFullScanner && (
         <Header
           title="Scan"
@@ -242,15 +242,16 @@ export default function ScanPage() {
               /* Hardware scanner mode */
               <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
                 {/* Animated scanner icon */}
-                <div className="relative">
-                  <div className="w-28 h-28 rounded-3xl bg-orange-500/10 dark:bg-orange-500/10 border-2 border-dashed border-orange-500/30 flex items-center justify-center">
+                <div className="relative group hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={cycleScanMode}>
+                  <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-orange-500/10 to-indigo-500/10 dark:from-orange-500/20 dark:to-indigo-500/20 border-2 border-dashed border-orange-500/40 dark:border-orange-500/30 flex items-center justify-center backdrop-blur-xl shadow-xl shadow-orange-500/10 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/20 dark:bg-black/20" />
                     <Usb
-                      size={48}
-                      className="text-orange-500 dark:text-orange-400"
+                      size={56}
+                      className="text-orange-500 dark:text-orange-400 drop-shadow-lg group-hover:-rotate-12 group-hover:scale-110 transition-all duration-500 relative z-10"
                     />
                   </div>
                   {/* Pulsing ring */}
-                  <div className="absolute inset-0 rounded-3xl border-2 border-orange-500/20 animate-ping" />
+                  <div className="absolute inset-0 rounded-[2.5rem] border-2 border-orange-500/30 animate-ping opacity-75" />
                 </div>
 
                 <div className="space-y-2 max-w-xs">

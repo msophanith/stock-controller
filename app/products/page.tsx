@@ -162,7 +162,7 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950">
+      <div className="min-h-screen bg-transparent">
         <Header title="Products" subtitle="Loading…" />
         <main className="px-4 pt-20 flex flex-col items-center justify-center">
           <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mb-4" />

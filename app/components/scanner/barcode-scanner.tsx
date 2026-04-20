@@ -143,7 +143,7 @@ export function BarcodeScanner({
         className={cn(
           "flex flex-col items-center justify-center gap-4 p-8 text-center",
           "dark:text-slate-600 text-slate-400",
-          fullScreen && "fixed inset-0 z-50 bg-white dark:bg-slate-950",
+          fullScreen && "fixed inset-0 z-50 bg-transparent",
           className,
         )}
       >

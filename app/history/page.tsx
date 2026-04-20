@@ -104,7 +104,7 @@ export default function HistoryPage() {
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-transparent">
       <Header title="History" subtitle={`${filtered.length} movements`} />
 
       <div className="sticky top-[57px] z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/60 px-4 py-3 space-y-2">

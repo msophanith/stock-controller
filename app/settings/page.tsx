@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const { isOnline, scannerEnabled, setScannerEnabled } = useAppStore();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-transparent">
       <Header title="Settings" subtitle="App configuration" />
 
       <main className="px-4 pb-28 pt-4 space-y-6 page-enter">

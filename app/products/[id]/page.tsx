@@ -69,7 +69,7 @@ export default function ProductDetailPage() {
 
   if (isError || !product) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center px-6">
           <Package
             size={48}
