@@ -1,12 +1,15 @@
 "use client";
 // components/stock/product-form.tsx
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Save, X } from "lucide-react";
+import { Save, X, ScanLine } from "lucide-react";
 import { PRODUCT_CATEGORIES, PRODUCT_UNITS, cn } from "@/lib/utils";
 import type { Product } from "@/types";
+import { useBarcodeScannerListener } from "@/lib/hooks";
+import { BarcodeScanner } from "@/components/scanner/barcode-scanner";
 
 const productSchema = z.object({
   barcode: z.string().min(1, "Barcode is required"),
@@ -38,10 +41,13 @@ export function ProductForm({
   isLoading,
   submitLabel = "Save Product",
 }: ProductFormProps) {
+  const [isScanning, setIsScanning] = useState(false);
+
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -51,6 +57,16 @@ export function ProductForm({
       minStock: 5,
       ...defaultValues,
     },
+  });
+
+  // Listen for physical barcode scanner when input isn't focused
+  useBarcodeScannerListener((scannedBarcode) => {
+    if (!isScanning) {
+      setValue("barcode", scannedBarcode, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
   });
 
   const buyPrice = watch("buyPrice");
@@ -68,12 +84,28 @@ export function ProductForm({
       {/* Barcode */}
       <div>
         <label className="label">Barcode *</label>
-        <input
-          {...register("barcode")}
-          className="input-field font-mono"
-          placeholder="e.g. 5901234123457"
-          inputMode="numeric"
-        />
+        <div className="flex gap-2">
+          <input
+            {...register("barcode")}
+            className="input-field font-mono flex-1"
+            placeholder="e.g. 5901234123457"
+            inputMode="numeric"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault(); // Prevent scanner's Enter key from submitting form early
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setIsScanning(true)}
+            className="w-11 h-11 flex-shrink-0 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+            title="Scan with Camera"
+          >
+            <ScanLine size={20} />
+          </button>
+        </div>
         {errors.barcode && (
           <p className="text-red-400 text-xs mt-1">{errors.barcode.message}</p>
         )}
@@ -248,6 +280,20 @@ export function ProductForm({
           {isLoading ? "Saving…" : submitLabel}
         </button>
       </div>
+
+      {isScanning && (
+        <BarcodeScanner
+          fullScreen
+          onScan={(scannedBarcode) => {
+            setValue("barcode", scannedBarcode, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setIsScanning(false);
+          }}
+          onClose={() => setIsScanning(false)}
+        />
+      )}
     </form>
   );
 }

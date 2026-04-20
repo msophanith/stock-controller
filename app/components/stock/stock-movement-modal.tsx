@@ -20,6 +20,7 @@ type MovementFormData = z.infer<typeof movementSchema>;
 
 interface StockMovementModalProps {
   readonly product: Product;
+  readonly defaultType?: StockMovementType;
   readonly onSubmit: (data: MovementFormData) => Promise<void>;
   readonly onClose: () => void;
 }
@@ -50,11 +51,13 @@ const TYPE_CONFIG: Record<
 
 export function StockMovementModal({
   product,
+  defaultType = "IN",
   onSubmit,
   onClose,
 }: StockMovementModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedType, setSelectedType] = useState<StockMovementType>("IN");
+  const [selectedType, setSelectedType] =
+    useState<StockMovementType>(defaultType);
 
   const {
     register,
@@ -86,18 +89,20 @@ export function StockMovementModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h2 className="font-bold text-slate-100">Stock Movement</h2>
+            <h2 className="font-bold text-slate-900 dark:text-slate-100">
+              Stock Movement
+            </h2>
             <p className="text-xs text-slate-500 truncate max-w-[240px]">
               {product.name}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-800"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X size={18} />
           </button>
@@ -108,9 +113,11 @@ export function StockMovementModal({
           className="p-5 space-y-4"
         >
           {/* Current stock */}
-          <div className="flex items-center justify-between bg-slate-800/60 rounded-xl px-4 py-3">
-            <span className="text-sm text-slate-400">Current Stock</span>
-            <span className="font-price font-bold text-xl text-slate-100">
+          <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800/60 rounded-xl px-4 py-3">
+            <span className="text-sm text-slate-600 dark:text-slate-400">
+              Current Stock
+            </span>
+            <span className="font-price font-bold text-xl text-slate-900 dark:text-slate-100">
               {product.quantity}{" "}
               <span className="text-slate-500 text-sm font-normal">
                 {product.unit}
@@ -134,7 +141,7 @@ export function StockMovementModal({
                       "flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all duration-150",
                       isSelected
                         ? cn(bg, "border-current scale-[1.02]", color)
-                        : "border-slate-700 bg-slate-800/40 text-slate-500 hover:border-slate-600",
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-600",
                     )}
                   >
                     <Icon size={20} />
@@ -160,7 +167,7 @@ export function StockMovementModal({
                     });
                   }
                 }}
-                className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-xl font-bold text-slate-300 hover:bg-slate-700 flex items-center justify-center flex-shrink-0"
+                className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center flex-shrink-0"
               >
                 −
               </button>
@@ -177,7 +184,7 @@ export function StockMovementModal({
                 onClick={() => {
                   setValue("quantity", quantity + 1, { shouldValidate: true });
                 }}
-                className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-xl font-bold text-slate-300 hover:bg-slate-700 flex items-center justify-center flex-shrink-0"
+                className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center flex-shrink-0"
               >
                 +
               </button>
@@ -190,8 +197,10 @@ export function StockMovementModal({
           </div>
 
           {/* Preview */}
-          <div className="flex items-center justify-between bg-slate-800/40 rounded-xl px-4 py-3">
-            <span className="text-sm text-slate-400">New Stock After</span>
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 rounded-xl px-4 py-3">
+            <span className="text-sm text-slate-600 dark:text-slate-400">
+              New Stock After
+            </span>
             <span
               className={cn(
                 "font-price font-bold text-xl",

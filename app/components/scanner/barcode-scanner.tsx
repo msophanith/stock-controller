@@ -388,7 +388,6 @@ export function BarcodeInput({
   placeholder = "Enter barcode…",
 }: Readonly<BarcodeInputProps>) {
   const [value, setValue] = useState("");
-  const [copiedValue, setCopiedValue] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const { barcodeHistory, addBarcodeToHistory, clearBarcodeHistory } =
     useAppStore();
@@ -400,14 +399,6 @@ export function BarcodeInput({
       setValue("");
     }
   };
-
-  const copyValue = useCallback(() => {
-    if (value) {
-      navigator.clipboard.writeText(value);
-      setCopiedValue(true);
-      setTimeout(() => setCopiedValue(false), 2000);
-    }
-  }, [value]);
 
   return (
     <div className="space-y-3">
@@ -427,19 +418,6 @@ export function BarcodeInput({
           autoComplete="off"
           inputMode="numeric"
         />
-        <button
-          type="button"
-          onClick={copyValue}
-          className={cn(
-            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-            copiedValue
-              ? "bg-emerald-500 text-white"
-              : "dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 bg-slate-200 border-slate-300 text-slate-600 hover:bg-slate-300 border",
-          )}
-          title="Copy barcode"
-        >
-          {copiedValue ? <Check size={16} /> : <Copy size={16} />}
-        </button>
         <button type="submit" className="btn-primary px-4">
           Go
         </button>

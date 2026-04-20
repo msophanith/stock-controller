@@ -1,6 +1,6 @@
 // lib/supabaseDb.ts
 // Supabase operations (HTTP/HTTPS) to bypass port-blocking firewalls
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabase as supabaseAdmin } from "./supabaseAdmin";
 import type { Product, StockMovement } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 

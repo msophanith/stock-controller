@@ -60,8 +60,8 @@ function NewProductContent() {
 
 export default function NewProductPage() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+    <div className="min-h-screen bg-white dark:bg-slate-950">
+      <Suspense fallback={<div className="min-h-screen bg-white dark:bg-slate-950" />}>
         <NewProductContent />
       </Suspense>
     </div>

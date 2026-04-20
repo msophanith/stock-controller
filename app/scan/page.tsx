@@ -13,6 +13,7 @@ import {
   TrendingDown,
   Keyboard,
   X,
+  Usb,
 } from "lucide-react";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
@@ -24,17 +25,18 @@ import { StockMovementModal } from "@/components/stock/stock-movement-modal";
 import { apiGetProductByBarcode } from "@/lib/api";
 import { useAddMovement } from "@/lib/queries";
 import { useProductStore } from "@/store/app-store";
+import { useBarcodeScannerListener } from "@/lib/hooks";
 import {
   formatCurrency,
   getStockStatus,
   getStockStatusColor,
   cn,
 } from "@/lib/utils";
-import type { Product } from "@/types";
+import type { Product, StockMovementType } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-type ScanMode = "scanner" | "keyboard";
+type ScanMode = "camera" | "keyboard" | "hardware";
 type MovementType = "IN" | "OUT" | "ADJUSTMENT";
 
 function getQuantityDelta(type: MovementType, quantity: number): number {
@@ -62,11 +64,16 @@ export default function ScanPage() {
   const { addToActivityLog } = useProductStore();
   const { mutateAsync: addMovement } = useAddMovement();
 
-  const [scanMode, setScanMode] = useState<ScanMode>("scanner");
+  const [scanMode, setScanMode] = useState<ScanMode>("hardware");
   const [foundProduct, setFoundProduct] = useState<Product | null>(null);
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
   const [showMovementModal, setShowMovementModal] = useState(false);
+  const [preselectedType, setPreselectedType] =
+    useState<StockMovementType>("IN");
   const [isSearching, setIsSearching] = useState(false);
+  const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
+    null,
+  );
 
   const handleBarcodeScan = useCallback(
     async (barcode: string) => {
@@ -74,6 +81,7 @@ export default function ScanPage() {
       setIsSearching(true);
       setFoundProduct(null);
       setNotFoundBarcode(null);
+      setLastScannedBarcode(barcode);
 
       try {
         const product = await apiGetProductByBarcode(barcode);
@@ -94,6 +102,12 @@ export default function ScanPage() {
     },
     [isSearching, addToActivityLog],
   );
+
+  // Physical barcode scanner listener — active in "hardware" mode
+  // Also active when showing product/not-found results so user can scan again
+  useBarcodeScannerListener(handleBarcodeScan, {
+    enabled: scanMode === "hardware" || !!foundProduct || !!notFoundBarcode,
+  });
 
   async function handleMovement(data: {
     type: MovementType;
@@ -130,9 +144,15 @@ export default function ScanPage() {
     }
   }
 
+  function openMovementModal(type: StockMovementType) {
+    setPreselectedType(type);
+    setShowMovementModal(true);
+  }
+
   function resetScan() {
     setFoundProduct(null);
     setNotFoundBarcode(null);
+    setLastScannedBarcode(null);
   }
 
   const status = foundProduct
@@ -141,7 +161,39 @@ export default function ScanPage() {
   const statusColor = status ? getStockStatusColor(status) : null;
 
   const showFullScanner =
-    scanMode === "scanner" && !foundProduct && !notFoundBarcode;
+    scanMode === "camera" && !foundProduct && !notFoundBarcode;
+
+  // Cycle through modes
+  function cycleScanMode() {
+    setScanMode((m) => {
+      if (m === "hardware") return "camera";
+      if (m === "camera") return "keyboard";
+      return "hardware";
+    });
+    resetScan();
+  }
+
+  function getModeIcon() {
+    switch (scanMode) {
+      case "hardware":
+        return <Usb size={16} />;
+      case "camera":
+        return <ScanLine size={16} />;
+      case "keyboard":
+        return <Keyboard size={16} />;
+    }
+  }
+
+  function getModeLabel() {
+    switch (scanMode) {
+      case "hardware":
+        return "Scanner";
+      case "camera":
+        return "Camera";
+      case "keyboard":
+        return "Manual";
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
@@ -152,16 +204,12 @@ export default function ScanPage() {
           onBack={() => router.push("/dashboard")}
           action={
             <button
-              onClick={() =>
-                setScanMode((m) => (m === "scanner" ? "keyboard" : "scanner"))
-              }
-              className="btn-secondary py-2 px-3 text-sm"
+              onClick={cycleScanMode}
+              className="btn-secondary py-2 px-3 text-sm gap-1.5"
+              title={`Current: ${getModeLabel()} — click to switch`}
             >
-              {scanMode === "scanner" ? (
-                <Keyboard size={16} />
-              ) : (
-                <ScanLine size={16} />
-              )}
+              {getModeIcon()}
+              <span className="text-xs">{getModeLabel()}</span>
             </button>
           }
         />
@@ -173,24 +221,86 @@ export default function ScanPage() {
           !showFullScanner && "px-4",
         )}
       >
-        {/* Scanner / input */}
+        {/* Scanner / input modes */}
         {!foundProduct && !notFoundBarcode && (
           <>
-            {scanMode === "scanner" ? (
+            {scanMode === "camera" ? (
               <BarcodeScanner
                 fullScreen
                 onScan={handleBarcodeScan}
                 onClose={() => setScanMode("keyboard")}
                 onBack={() => router.push("/dashboard")}
               />
-            ) : (
+            ) : scanMode === "keyboard" ? (
               <div className="space-y-3">
                 <p className="text-sm text-slate-500 dark:text-slate-500 text-center">
                   Type or paste a barcode
                 </p>
                 <BarcodeInput onSubmit={handleBarcodeScan} />
               </div>
+            ) : (
+              /* Hardware scanner mode */
+              <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
+                {/* Animated scanner icon */}
+                <div className="relative">
+                  <div className="w-28 h-28 rounded-3xl bg-orange-500/10 dark:bg-orange-500/10 border-2 border-dashed border-orange-500/30 flex items-center justify-center">
+                    <Usb
+                      size={48}
+                      className="text-orange-500 dark:text-orange-400"
+                    />
+                  </div>
+                  {/* Pulsing ring */}
+                  <div className="absolute inset-0 rounded-3xl border-2 border-orange-500/20 animate-ping" />
+                </div>
+
+                <div className="space-y-2 max-w-xs">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    Ready to Scan
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Point your USB or Bluetooth barcode scanner at a product
+                    barcode. The scan will be detected automatically.
+                  </p>
+                </div>
+
+                {/* Status indicator */}
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    Listening for scanner input
+                  </span>
+                </div>
+
+                {/* Last scanned indicator */}
+                {lastScannedBarcode && (
+                  <div className="text-xs text-slate-500 dark:text-slate-600">
+                    Last scanned:{" "}
+                    <span className="font-mono text-orange-400">
+                      {lastScannedBarcode}
+                    </span>
+                  </div>
+                )}
+
+                {/* Quick mode switches */}
+                <div className="flex gap-2 pt-4">
+                  <button
+                    onClick={() => setScanMode("camera")}
+                    className="btn-secondary py-2.5 px-4 text-sm"
+                  >
+                    <ScanLine size={16} />
+                    Use Camera
+                  </button>
+                  <button
+                    onClick={() => setScanMode("keyboard")}
+                    className="btn-secondary py-2.5 px-4 text-sm"
+                  >
+                    <Keyboard size={16} />
+                    Type Manually
+                  </button>
+                </div>
+              </div>
             )}
+
             {isSearching && (
               <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400 text-sm py-4">
                 <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -203,6 +313,16 @@ export default function ScanPage() {
         {/* Product found */}
         {foundProduct && (
           <div className="space-y-3">
+            {/* Scanner still-listening indicator */}
+            {scanMode === "hardware" && (
+              <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                  Scanner active — scan another barcode to switch product
+                </span>
+              </div>
+            )}
+
             {/* Product card */}
             <div className="card p-5">
               <div className="flex items-start justify-between gap-3 mb-4">
@@ -250,17 +370,17 @@ export default function ScanPage() {
                 </div>
               </div>
 
-              {/* Quick actions */}
+              {/* Quick actions — pre-selects movement type */}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => setShowMovementModal(true)}
+                  onClick={() => openMovementModal("IN")}
                   className="btn-success py-3"
                 >
                   <TrendingUp size={18} />
                   Stock In
                 </button>
                 <button
-                  onClick={() => setShowMovementModal(true)}
+                  onClick={() => openMovementModal("OUT")}
                   className="btn-danger py-3"
                 >
                   <TrendingDown size={18} />
@@ -289,6 +409,16 @@ export default function ScanPage() {
         {/* Product not found */}
         {notFoundBarcode && (
           <div className="space-y-4">
+            {/* Scanner still-listening indicator */}
+            {scanMode === "hardware" && (
+              <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                  Scanner active — scan another barcode to try again
+                </span>
+              </div>
+            )}
+
             <div className="card p-6 text-center">
               <Package
                 size={48}
@@ -328,6 +458,7 @@ export default function ScanPage() {
       {showMovementModal && foundProduct && (
         <StockMovementModal
           product={foundProduct}
+          defaultType={preselectedType}
           onSubmit={handleMovement}
           onClose={() => setShowMovementModal(false)}
         />

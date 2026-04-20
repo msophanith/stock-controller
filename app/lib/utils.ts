@@ -1,7 +1,7 @@
 // lib/utils.ts
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { nanoid } from "nanoid";
+import { v4 as uuidv4 } from "uuid";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -41,7 +41,7 @@ export function formatRelativeDate(date: Date | string): string {
 }
 
 export function generateId(): string {
-  return nanoid();
+  return uuidv4();
 }
 
 export function getStockStatus(
@@ -208,8 +208,18 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
     ];
   });
 
+  // Calculate total amount earned
+  const totalEarned = sales.reduce((acc, s) => {
+    const quantity = s.quantity || 0;
+    const sellPrice = s.Product?.sellPrice || 0;
+    return acc + quantity * sellPrice;
+  }, 0);
+
   // Combine headers and rows
-  const csv = [
+  const csvRows = [
+    `"Sales Report: ${title}",,,,,,`,
+    `"Generated at: ${new Date().toLocaleString("en-GB")}",,,,,,`,
+    `,,,,,,`,
     headers.join(","),
     ...rows.map((row) =>
       row
@@ -219,7 +229,11 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
         })
         .join(","),
     ),
-  ].join("\n");
+    `,,,,,,`,
+    `,,,,,Grand Total,${totalEarned.toFixed(2)}`,
+  ];
+
+  const csv = csvRows.join("\n");
 
   // Create blob and download
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

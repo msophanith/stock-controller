@@ -62,7 +62,7 @@ export function ProductCard({
     return (
       <Link href={`/products/${product.id}`} className="card-hover block p-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-slate-800 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
             <Package size={18} className="text-slate-400" />
           </div>
           <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ export function ProductCard({
       <Link href={`/products/${product.id}`}>
         <div className="flex items-start gap-3">
           {/* Icon / thumbnail */}
-          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0">
             <Package size={22} className="text-slate-400" />
           </div>
 
@@ -156,7 +156,7 @@ export function ProductCard({
 
       {/* Quick adjustment buttons */}
       {showQuickActions && (
-        <div className="flex gap-2 mt-4 pt-3 border-t border-slate-700">
+        <div className="flex gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
           <button
             onClick={(e) => {
               e.preventDefault();

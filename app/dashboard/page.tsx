@@ -220,7 +220,7 @@ export default function DashboardPage() {
               {activityLog.slice(0, 5).map((log: string, idx: number) => (
                 <div
                   key={`log-${idx}`}
-                  className="flex items-center justify-between text-xs py-1.5 border-b border-slate-700 last:border-b-0"
+                  className="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 dark:border-slate-700 last:border-b-0"
                 >
                   <span className="text-slate-400">{log}</span>
                   <span className="text-slate-600">now</span>
