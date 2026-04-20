@@ -2,7 +2,7 @@
 // app/scan/page.tsx
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -14,6 +14,7 @@ import {
   Keyboard,
   X,
   Usb,
+  RotateCcw,
 } from "lucide-react";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
@@ -39,8 +40,8 @@ export const dynamic = "force-dynamic";
 type ScanMode = "camera" | "keyboard" | "hardware";
 type MovementType = "IN" | "OUT" | "ADJUSTMENT";
 
-function getQuantityDelta(type: MovementType, quantity: number): number {
-  if (type === "IN") {
+function getQuantityDelta(type: MovementType | "RETURN", quantity: number): number {
+  if (type === "IN" || type === "RETURN") {
     return quantity;
   }
   if (type === "OUT") {
@@ -49,18 +50,23 @@ function getQuantityDelta(type: MovementType, quantity: number): number {
   return quantity;
 }
 
-function getMovementToastMessage(type: MovementType, quantity: number): string {
+function getMovementToastMessage(type: MovementType | "RETURN", quantity: number): string {
   if (type === "IN") {
     return `+${quantity} added`;
   }
   if (type === "OUT") {
     return `-${quantity} removed`;
   }
+  if (type === "RETURN") {
+    return `+${quantity} returned`;
+  }
   return "Stock adjusted";
 }
 
 export default function ScanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isReturnFlow = searchParams.get("action") === "return";
   const { addToActivityLog } = useProductStore();
   const { mutateAsync: addMovement } = useAddMovement();
 
@@ -69,7 +75,7 @@ export default function ScanPage() {
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [preselectedType, setPreselectedType] =
-    useState<StockMovementType>("IN");
+    useState<StockMovementType>(isReturnFlow ? "RETURN" : "IN");
   const [isSearching, setIsSearching] = useState(false);
   const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
     null,
@@ -89,6 +95,10 @@ export default function ScanPage() {
           setFoundProduct(product);
           addToActivityLog(`Scanned: ${product.name} (${barcode})`);
           toast.success(`Found: ${product.name}`);
+          if (isReturnFlow) {
+            setPreselectedType("RETURN");
+            setShowMovementModal(true);
+          }
         } else {
           setNotFoundBarcode(barcode);
           toast.info("Product not found — add it?");
@@ -110,7 +120,7 @@ export default function ScanPage() {
   });
 
   async function handleMovement(data: {
-    type: MovementType;
+    type: MovementType | "RETURN";
     quantity: number;
     note?: string;
     reference?: string;
@@ -388,6 +398,13 @@ export default function ScanPage() {
                   Stock Out
                 </button>
               </div>
+              <button
+                onClick={() => openMovementModal("RETURN")}
+                className="w-full mt-2 btn-secondary py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20"
+              >
+                <RotateCcw size={18} />
+                Return from Customer
+              </button>
             </div>
 
             {/* View + Scan again */}

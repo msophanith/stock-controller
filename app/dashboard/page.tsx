@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Eye,
   EyeOff,
+  RotateCcw,
 } from "lucide-react";
 import { useProductStore } from "@/store/app-store";
 import { useProducts, useTodaySales } from "@/lib/queries";
@@ -41,13 +42,25 @@ export default function DashboardPage() {
   const [showAmount, setShowAmount] = useState(false);
 
   const todayStats = useMemo(() => {
-    const salesCount = todaySales.length;
-    const totalRevenue = todaySales.reduce(
+    const sales = todaySales.filter((m: any) => m.type === "OUT");
+    const returns = todaySales.filter((m: any) => m.type === "RETURN");
+
+    const salesCount = sales.length;
+    const returnsCount = returns.length;
+
+    const totalRevenue = sales.reduce(
       (acc: number, sale: any) =>
         acc + sale.quantity * (sale.Product?.sellPrice || 0),
       0,
     );
-    return { salesCount, totalRevenue };
+
+    const totalReturnAmount = returns.reduce(
+      (acc: number, ret: any) =>
+        acc + ret.quantity * (ret.Product?.sellPrice || 0),
+      0,
+    );
+
+    return { salesCount, returnsCount, totalRevenue, totalReturnAmount };
   }, [todaySales]);
 
   const stats = useMemo(() => {
@@ -155,27 +168,61 @@ export default function DashboardPage() {
                 {showAmount ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 pl-1 mb-6 flex items-center gap-1.5">
-              <TrendingUp
-                size={14}
-                className="text-indigo-500 dark:text-indigo-400"
-              />
-              <span>
-                <span className="text-indigo-500 dark:text-indigo-400 font-bold text-lg">
-                  {todayStats.salesCount}{" "}
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 pl-1 mb-6 flex flex-wrap items-center gap-y-1 gap-x-3">
+              <span className="flex items-center gap-1.5">
+                <TrendingUp
+                  size={14}
+                  className="text-indigo-500 dark:text-indigo-400"
+                />
+                <span>
+                  <span className="text-indigo-500 dark:text-indigo-400 font-bold text-lg">
+                    {todayStats.salesCount}{" "}
+                  </span>
+                  sale
+                  {todayStats.salesCount !== 1 ? "s" : ""} today
                 </span>
-                sale
-                {todayStats.salesCount !== 1 ? "s" : ""} today
               </span>
+
+              {todayStats.returnsCount > 0 && (
+                <span className="flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-700 pl-3">
+                  <RotateCcw
+                    size={14}
+                    className="text-amber-500 dark:text-amber-400"
+                  />
+                  <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+                    <span className="flex items-baseline gap-1">
+                      <span className="text-amber-500 dark:text-amber-400 font-bold text-lg">
+                        {todayStats.returnsCount}{" "}
+                      </span>
+                      <span className="text-xs">
+                        return
+                        {todayStats.returnsCount !== 1 ? "s" : ""}
+                      </span>
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-bold text-amber-600/80 dark:text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
+                      {showAmount
+                        ? formatCurrency(todayStats.totalReturnAmount)
+                        : "$***"}
+                    </span>
+                  </div>
+                </span>
+              )}
             </p>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/scan"
                 className="btn-primary flex-1 py-4 text-base shadow-indigo-500/25 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:from-indigo-700 active:to-purple-800"
               >
                 <ScanLine size={20} />
                 Quick Scan
+              </Link>
+              <Link
+                href="/scan?action=return"
+                className="btn-secondary flex-1 py-4 text-base border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              >
+                <RotateCcw size={20} />
+                Return Product
               </Link>
               <Link
                 href="/products/new"

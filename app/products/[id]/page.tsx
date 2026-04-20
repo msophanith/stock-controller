@@ -18,6 +18,7 @@ import {
   Copy,
   Check,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import { Header } from "@/components/ui/header";
 import { BottomNav } from "@/components/ui/bottom-nav";
@@ -101,7 +102,7 @@ export default function ProductDetailPage() {
       : "—";
 
   async function handleMovement(data: {
-    type: "IN" | "OUT" | "ADJUSTMENT";
+    type: "IN" | "OUT" | "ADJUSTMENT" | "RETURN";
     quantity: number;
     note?: string;
     reference?: string;
@@ -122,6 +123,7 @@ export default function ProductDetailPage() {
       let actionLabel = "adjusted";
       if (data.type === "IN") actionLabel = "added";
       else if (data.type === "OUT") actionLabel = "removed";
+      else if (data.type === "RETURN") actionLabel = "returned";
 
       toast.success(`Stock ${actionLabel}`);
     } catch (err) {
@@ -164,6 +166,7 @@ export default function ProductDetailPage() {
     IN: <TrendingUp size={14} className="text-emerald-400" />,
     OUT: <TrendingDown size={14} className="text-red-400" />,
     ADJUSTMENT: <SlidersHorizontal size={14} className="text-blue-400" />,
+    RETURN: <RotateCcw size={14} className="text-amber-400" />,
   };
 
   return (
@@ -360,13 +363,15 @@ export default function ProductDetailPage() {
                 let label = "Adjustment";
                 if (m.type === "IN") label = "Stock In";
                 else if (m.type === "OUT") label = "Stock Out";
+                else if (m.type === "RETURN") label = "Customer Return";
 
                 let typeColor = "text-blue-400";
                 if (m.type === "IN") typeColor = "text-emerald-400";
                 else if (m.type === "OUT") typeColor = "text-red-400";
+                else if (m.type === "RETURN") typeColor = "text-amber-400";
 
                 let prefix = "⇔";
-                if (m.type === "IN") prefix = "+";
+                if (m.type === "IN" || m.type === "RETURN") prefix = "+";
                 else if (m.type === "OUT") prefix = "−";
 
                 return (

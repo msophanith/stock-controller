@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Search,
   X,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/ui/header";
@@ -19,12 +20,13 @@ import type { StockMovement } from "@/types";
 import { formatRelativeDate, cn } from "@/lib/utils";
 import { useRecentMovements } from "@/lib/queries";
 
-type FilterType = "ALL" | "IN" | "OUT" | "ADJUSTMENT";
+type FilterType = "ALL" | "IN" | "OUT" | "ADJUSTMENT" | "RETURN";
 
 const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "IN", label: "In" },
   { value: "OUT", label: "Out" },
+  { value: "RETURN", label: "Return" },
   { value: "ADJUSTMENT", label: "Adjust" },
 ];
 
@@ -80,6 +82,13 @@ export default function HistoryPage() {
       color: "text-blue-400",
       bg: "bg-blue-500/10",
       sign: "⇔",
+    },
+    RETURN: {
+      icon: RotateCcw,
+      label: "Customer Return",
+      color: "text-amber-400",
+      bg: "bg-amber-500/10",
+      sign: "+",
     },
   };
 
@@ -195,7 +204,7 @@ export default function HistoryPage() {
               <div className="space-y-2">
                 {items.map((m) => {
                   const config =
-                    movementConfig[m.type as "IN" | "OUT" | "ADJUSTMENT"];
+                    movementConfig[m.type as keyof typeof movementConfig] || movementConfig.ADJUSTMENT;
                   const Icon = config.icon;
                   // @ts-ignore - Product is joined in the API
                   const product = m.Product;
