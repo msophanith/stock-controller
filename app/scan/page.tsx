@@ -1,7 +1,7 @@
 "use client";
 // app/scan/page.tsx
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -40,7 +40,10 @@ export const dynamic = "force-dynamic";
 type ScanMode = "camera" | "keyboard" | "hardware";
 type MovementType = "IN" | "OUT" | "ADJUSTMENT";
 
-function getQuantityDelta(type: MovementType | "RETURN", quantity: number): number {
+function getQuantityDelta(
+  type: MovementType | "RETURN",
+  quantity: number,
+): number {
   if (type === "IN" || type === "RETURN") {
     return quantity;
   }
@@ -50,7 +53,10 @@ function getQuantityDelta(type: MovementType | "RETURN", quantity: number): numb
   return quantity;
 }
 
-function getMovementToastMessage(type: MovementType | "RETURN", quantity: number): string {
+function getMovementToastMessage(
+  type: MovementType | "RETURN",
+  quantity: number,
+): string {
   if (type === "IN") {
     return `+${quantity} added`;
   }
@@ -63,7 +69,7 @@ function getMovementToastMessage(type: MovementType | "RETURN", quantity: number
   return "Stock adjusted";
 }
 
-export default function ScanPage() {
+function ScanPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isReturnFlow = searchParams.get("action") === "return";
@@ -74,8 +80,9 @@ export default function ScanPage() {
   const [foundProduct, setFoundProduct] = useState<Product | null>(null);
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
   const [showMovementModal, setShowMovementModal] = useState(false);
-  const [preselectedType, setPreselectedType] =
-    useState<StockMovementType>(isReturnFlow ? "RETURN" : "IN");
+  const [preselectedType, setPreselectedType] = useState<StockMovementType>(
+    isReturnFlow ? "RETURN" : "IN",
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
     null,
@@ -110,7 +117,7 @@ export default function ScanPage() {
         setIsSearching(false);
       }
     },
-    [isSearching, addToActivityLog],
+    [isSearching, addToActivityLog, isReturnFlow],
   );
 
   // Physical barcode scanner listener — active in "hardware" mode
@@ -252,7 +259,10 @@ export default function ScanPage() {
               /* Hardware scanner mode */
               <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
                 {/* Animated scanner icon */}
-                <div className="relative group hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={cycleScanMode}>
+                <div
+                  className="relative group hover:scale-105 transition-transform duration-500 cursor-pointer"
+                  onClick={cycleScanMode}
+                >
                   <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-orange-500/10 to-indigo-500/10 dark:from-orange-500/20 dark:to-indigo-500/20 border-2 border-dashed border-orange-500/40 dark:border-orange-500/30 flex items-center justify-center backdrop-blur-xl shadow-xl shadow-orange-500/10 relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/20 dark:bg-black/20" />
                     <Usb
@@ -482,5 +492,19 @@ export default function ScanPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ScanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <ScanPageContent />
+    </Suspense>
   );
 }
