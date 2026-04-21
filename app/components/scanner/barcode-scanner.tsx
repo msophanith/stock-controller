@@ -8,15 +8,7 @@ import {
   useTorch,
 } from "react-barcode-scanner";
 import "react-barcode-scanner/polyfill";
-import {
-  X,
-  Flashlight,
-  Camera,
-  Copy,
-  Check,
-  Clock,
-  ArrowLeft,
-} from "lucide-react";
+import { X, Flashlight, Camera, Check, Clock, ArrowLeft } from "lucide-react";
 
 // --- Patch BarcodeDetector to prevent InvalidStateError crashes ---
 if (globalThis.window !== undefined) {
@@ -168,82 +160,92 @@ export function BarcodeScanner({
   return (
     <div
       className={cn(
-        "relative flex flex-col",
-        fullScreen && "fixed inset-0 z-50 bg-black",
+        "relative w-full flex flex-col",
+        fullScreen && "fixed inset-0 z-[100] bg-black overflow-hidden",
         className,
       )}
     >
       {/* Scanner viewport */}
       <div
         className={cn(
-          "relative overflow-hidden",
+          "relative overflow-hidden transition-all duration-300",
           fullScreen
-            ? "w-screen h-screen"
-            : "rounded-2xl dark:bg-slate-950 bg-white border dark:border-slate-800 border-slate-200 w-full aspect-video",
+            ? "flex-1 h-full w-full"
+            : "w-full aspect-[4/3] sm:aspect-video rounded-[2rem] bg-slate-950 border border-slate-800/50 shadow-2xl",
         )}
       >
-        {/* react-barcode-scanner renders a <video> element */}
-        <RBSScanner
-          paused={paused}
-          trackConstraints={trackConstraints}
-          options={scanOptions}
-          onCapture={handleCapture}
-          onPlay={() => setIsCameraReady(true)}
-          onError={handleError}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+        {/* 1. Camera Feed Layer */}
+        <div className="absolute inset-0 z-0 bg-black flex items-center justify-center overflow-hidden">
+          <RBSScanner
+            paused={paused}
+            trackConstraints={trackConstraints}
+            options={scanOptions}
+            onCapture={handleCapture}
+            onPlay={() => setIsCameraReady(true)}
+            onError={handleError}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
 
-        {/* --- CUSTOM SCANNER UI OVERLAY --- */}
-        {isCameraReady && (
-          <>
-            {/* 1. Backdrop Mask */}
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute inset-0 bg-black/40" />
-              <div
-                className={cn(
-                  "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                  "w-[280px] h-[160px] bg-transparent shadow-[0_0_0_100vmax_rgba(0,0,0,0.5)]",
-                  "rounded-xl border-2 border-white/20",
-                )}
-              />
-            </div>
-
-            {/* 2. Scanning Frame Elements */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[160px] pointer-events-none">
-              {/* Corners */}
-              <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-orange-500 rounded-tl-lg" />
-              <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-orange-500 rounded-tr-lg" />
-              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-orange-500 rounded-bl-lg" />
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-orange-500 rounded-br-lg" />
-
-              {/* Scanning laser line */}
-              <div className="absolute left-2 right-2 h-0.5 bg-orange-400 shadow-[0_0_10px_#f97316] animate-scan-line-slow top-[10%]" />
-            </div>
-
-            {/* 3. Instruction Text */}
-            <div className="absolute top-[18%] left-0 right-0 text-center pointer-events-none">
-              <p className="text-white/80 text-sm font-medium px-6 py-2 rounded-full inline-block bg-black/40 backdrop-blur-sm">
-                Position barcode within frame
+          {!isCameraReady && !error && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950">
+              <div className="w-10 h-10 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+              <p className="text-xs text-slate-500 font-medium">
+                Starting camera...
               </p>
             </div>
-          </>
+          )}
+        </div>
+
+        {/* 2. Custom Scanner Overlay Layer */}
+        {isCameraReady && (
+          <div className="absolute inset-0 pointer-events-none z-10 flex flex-col">
+            {/* Top dark area */}
+            <div className="flex-1 bg-black/60 backdrop-blur-[2px]" />
+
+            {/* Middle scanning row */}
+            <div className="flex h-[260px] sm:h-[300px]">
+              <div className="flex-1 bg-black/60 backdrop-blur-[2px]" />
+              {/* Target square */}
+              <div className="relative w-[260px] sm:w-[300px] bg-transparent">
+                {/* Targeting Corners */}
+                <div className="absolute -top-1 -left-1 w-10 h-10 border-t-4 border-l-4 border-orange-500 rounded-tl-2xl" />
+                <div className="absolute -top-1 -right-1 w-10 h-10 border-t-4 border-r-4 border-orange-500 rounded-tr-2xl" />
+                <div className="absolute -bottom-1 -left-1 w-10 h-10 border-b-4 border-l-4 border-orange-500 rounded-bl-2xl" />
+                <div className="absolute -bottom-1 -right-1 w-10 h-10 border-b-4 border-r-4 border-orange-500 rounded-br-2xl" />
+
+                {/* Laser scan line */}
+                <div className="absolute left-6 right-6 h-0.5 bg-orange-500 shadow-[0_0_15px_#f97316] animate-scan-line-slow top-0" />
+              </div>
+              <div className="flex-1 bg-black/60 backdrop-blur-[2px]" />
+            </div>
+
+            {/* Bottom dark area */}
+            <div className="flex-1 bg-black/60 backdrop-blur-[2px] flex flex-col items-center pt-8">
+              <div className="px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center gap-2 shadow-2xl">
+                <Camera size={16} className="text-orange-400" />
+                <p className="text-white text-sm font-semibold tracking-wide">
+                  Align barcode within frame
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* Exit Fullscreen Button */}
+        {/* --- UI Controls Layer --- */}
         {fullScreen && (
-          <div className="absolute top-0 left-0 right-0 p-4 safe-pt flex items-center justify-between z-[60]">
+          <div className="absolute top-0 left-0 right-0 p-6 safe-pt flex items-center justify-between z-[60]">
             <div className="flex items-center gap-3">
               {onBack && (
                 <button
                   onClick={onBack}
-                  className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-900/80 border border-white/20 text-white backdrop-blur-md active:scale-95 transition-transform shadow-xl"
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center bg-black/40 border border-white/10 text-white backdrop-blur-xl active:scale-90 transition-all shadow-2xl"
                 >
                   <ArrowLeft size={24} />
                 </button>
               )}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-lg">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 backdrop-blur-md">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-red-400 text-[10px] font-black uppercase tracking-widest">
                   Live
                 </span>
               </div>
@@ -251,7 +253,7 @@ export function BarcodeScanner({
             {onClose && (
               <button
                 onClick={onClose}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-900/80 border border-white/20 text-white backdrop-blur-md active:scale-95 transition-transform shadow-xl"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center bg-black/40 border border-white/10 text-white backdrop-blur-xl active:scale-90 transition-all shadow-2xl"
               >
                 <X size={24} />
               </button>

@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AppProviders } from "@/components/provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { GlobalShortcuts } from "@/components/ui/global-shortcuts";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -54,8 +55,11 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased dark:bg-slate-950 dark:text-slate-100 bg-white text-slate-900 min-h-screen">
         <ThemeProvider>
-          {/* {process.env.NODE_ENV === "production" && <SecurityShield />} */}
-          <AppProviders>{children}</AppProviders>
+          <AppProviders>
+            <GlobalShortcuts />
+            {children}
+          </AppProviders>
+
           <Toaster
             position="top-center"
             richColors
