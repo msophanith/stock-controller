@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { AppProviders } from "@/components/provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GlobalShortcuts } from "@/components/ui/global-shortcuts";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -57,6 +58,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AppProviders>
             <GlobalShortcuts />
+            <SpeedInsights />
             {children}
           </AppProviders>
 
