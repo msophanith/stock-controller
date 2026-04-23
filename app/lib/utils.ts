@@ -191,10 +191,10 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
     const d = new Date(s.createdAt);
     const dateStr = d.toLocaleDateString("en-GB");
     const timeStr = d.toLocaleTimeString("en-GB");
-    const productName = s.Product?.name || "Unknown Product";
-    const barcode = s.Product?.barcode || "";
+    const productName = s.product?.name || "Unknown Product";
+    const barcode = s.product?.barcode || "";
     const quantity = s.quantity || 0;
-    const sellPrice = s.Product?.sellPrice || 0;
+    const sellPrice = s.product?.sellPrice || 0;
     const total = quantity * sellPrice;
 
     return [
@@ -211,7 +211,7 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
   // Calculate total amount earned
   const totalEarned = sales.reduce((acc, s) => {
     const quantity = s.quantity || 0;
-    const sellPrice = s.Product?.sellPrice || 0;
+    const sellPrice = s.product?.sellPrice || 0;
     return acc + quantity * sellPrice;
   }, 0);
 

@@ -48,8 +48,7 @@ export default function HistoryPage() {
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       results = results.filter((m) => {
-        // @ts-ignore - Product is joined in the API
-        const productName = m.Product?.name?.toLowerCase() || "";
+        const productName = m.product?.name?.toLowerCase() || "";
         const note = m.note?.toLowerCase() || "";
         const ref = m.reference?.toLowerCase() || "";
         return productName.includes(q) || note.includes(q) || ref.includes(q);
@@ -162,8 +161,7 @@ export default function HistoryPage() {
               movementConfig[m.type as keyof typeof movementConfig] ||
               movementConfig.ADJUSTMENT;
             const Icon = config.icon;
-            // @ts-ignore - Product is joined in the API
-            const product = m.Product;
+            const product = m.product;
 
             return (
               <div key={m.id} className="card p-3">

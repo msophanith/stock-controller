@@ -9,6 +9,7 @@ import {
   apiGetRecentMovements,
   apiGetTodaySales,
 } from "./api";
+import { Product, StockMovement } from "@/types";
 
 export const QUERY_KEYS = {
   products: ["products"] as const,
@@ -20,15 +21,16 @@ export const QUERY_KEYS = {
 
 // --- GET ---
 
-export function useProducts() {
-  return useQuery({
+export function useProducts(options?: any) {
+  return useQuery<Product[]>({
     queryKey: QUERY_KEYS.products,
     queryFn: apiGetAllProducts,
+    ...options,
   });
 }
 
 export function useProduct(id: string) {
-  return useQuery({
+  return useQuery<Product & { movements: StockMovement[] }>({
     queryKey: QUERY_KEYS.product(id),
     queryFn: () => apiGetProductById(id),
     enabled: !!id,
@@ -36,7 +38,7 @@ export function useProduct(id: string) {
 }
 
 export function useProductByBarcode(barcode: string) {
-  return useQuery({
+  return useQuery<Product | null>({
     queryKey: QUERY_KEYS.barcode(barcode),
     queryFn: () => apiGetProductByBarcode(barcode),
     enabled: !!barcode,
@@ -44,16 +46,17 @@ export function useProductByBarcode(barcode: string) {
 }
 
 export function useRecentMovements() {
-  return useQuery({
+  return useQuery<StockMovement[]>({
     queryKey: QUERY_KEYS.movements,
     queryFn: () => apiGetRecentMovements(50),
   });
 }
 
-export function useTodaySales() {
-  return useQuery({
+export function useTodaySales(options?: any) {
+  return useQuery<StockMovement[]>({
     queryKey: ["movements", "today"],
     queryFn: () => apiGetTodaySales(),
+    ...options,
   });
 }
 

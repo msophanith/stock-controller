@@ -220,7 +220,7 @@ export async function getRecentMovements(
   try {
     const { data, error } = await supabaseAdmin
       .from("StockMovement")
-      .select("*, Product(*)")
+      .select("*, product:Product(*)")
       .order("createdAt", { ascending: false })
       .limit(limitCount);
 
@@ -239,7 +239,7 @@ export async function getTodaySales(): Promise<StockMovement[]> {
 
     const { data, error } = await supabaseAdmin
       .from("StockMovement")
-      .select("*, Product(*)")
+      .select("*, product:Product(*)")
       .in("type", ["OUT", "RETURN"])
       .gte("createdAt", today.toISOString())
       .order("createdAt", { ascending: false });
@@ -277,6 +277,57 @@ export async function bulkImportProducts(products: Product[]): Promise<void> {
     if (error) throw error;
   } catch (error) {
     console.error("Error bulk importing products:", error);
+    throw error;
+  }
+}
+// ─── Dashboard Summary ────────────────────────────────────────────────────────
+export async function getDashboardSummary() {
+  try {
+    // 1. Fetch only necessary fields for ALL products to calculate stats and alerts
+    const { data: allProducts, error: err } = await supabaseAdmin
+      .from("Product")
+      .select(
+        "id, name, category, barcode, shelf, unit, sellPrice, buyPrice, quantity, minStock, updatedAt",
+      )
+      .order("updatedAt", { ascending: false });
+
+    if (err) throw err;
+
+    const products = allProducts as unknown as Product[];
+
+    // 2. Calculate stats
+    const totalProducts = products.length;
+    const totalValue = products.reduce(
+      (acc, p) => acc + p.sellPrice * p.quantity,
+      0,
+    );
+    const lowStockProducts = products.filter(
+      (p) => p.quantity > 0 && p.quantity <= p.minStock,
+    );
+    const outOfStockProducts = products.filter((p) => p.quantity === 0);
+
+    const stats = {
+      totalProducts,
+      totalValue,
+      lowStockCount: lowStockProducts.length,
+      outOfStockCount: outOfStockProducts.length,
+    };
+
+    // 3. Prepare preview lists
+    const recentProducts = products.slice(0, 5);
+    const alertProducts = [...outOfStockProducts, ...lowStockProducts].slice(
+      0,
+      10,
+    );
+
+    return {
+      stats,
+      recentProducts,
+      alertProducts,
+      allProducts: [], // Defer full list to client-side background fetch
+    };
+  } catch (error) {
+    console.error("Error fetching dashboard summary:", error);
     throw error;
   }
 }
