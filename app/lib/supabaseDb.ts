@@ -1,8 +1,9 @@
 // lib/supabaseDb.ts
 // Supabase operations (HTTP/HTTPS) to bypass port-blocking firewalls
 import { supabase as supabaseAdmin } from "./supabaseAdmin";
-import type { Product, StockMovement } from "@/types";
+import type { Product, StockMovement, StockMovementType } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import { notifyStockChange } from "./telegram";
 
 // ─── Product helpers ──────────────────────────────────────────────────────────
 
@@ -184,6 +185,16 @@ export async function addMovement(
 
         const newQty = Math.max(0, product.quantity + delta);
         await updateProduct(movement.productId, { quantity: newQty });
+
+        // ── Telegram notification ─────────────────────────────────────────
+        // Must be awaited — Next.js serverless terminates the function as soon
+        // as a response is sent; "void" would be killed before Telegram responds.
+        // notifyStockChange catches all its own errors, so this is safe.
+        await notifyStockChange({
+          type: movement.type as StockMovementType,
+          product: { ...product, quantity: newQty },
+          qty: movement.quantity || 0,
+        });
       }
     }
 
