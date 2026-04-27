@@ -22,6 +22,7 @@ export function formatDate(date: Date | string | null | undefined): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Phnom_Penh",
   }).format(new Date(date));
 }
 
@@ -189,8 +190,8 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
   // Map sales to CSV rows
   const rows = sales.map((s) => {
     const d = new Date(s.createdAt);
-    const dateStr = d.toLocaleDateString("en-GB");
-    const timeStr = d.toLocaleTimeString("en-GB");
+    const dateStr = d.toLocaleDateString("en-GB", { timeZone: "Asia/Phnom_Penh" });
+    const timeStr = d.toLocaleTimeString("en-GB", { timeZone: "Asia/Phnom_Penh" });
     const productName = s.product?.name || "Unknown Product";
     const barcode = s.product?.barcode || "";
     const quantity = s.quantity || 0;
@@ -218,7 +219,7 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
   // Combine headers and rows
   const csvRows = [
     `"Sales Report: ${title}",,,,,,`,
-    `"Generated at: ${new Date().toLocaleString("en-GB")}",,,,,,`,
+    `"Generated at: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Phnom_Penh" })}",,,,,,`,
     `,,,,,,`,
     headers.join(","),
     ...rows.map((row) =>

@@ -194,6 +194,7 @@ export async function addMovement(
           type: movement.type as StockMovementType,
           product: { ...product, quantity: newQty },
           qty: movement.quantity || 0,
+          movementId: dbMovement.id,
         });
       }
     }

@@ -111,7 +111,7 @@ function ScanPageContent() {
           // Perform quick movement (default to OUT for sales)
           try {
             audioManager.playSuccess();
-            await addMovement({
+            const result = await addMovement({
               productId: foundProduct.id,
               type: "OUT",
               quantity: 1,
@@ -125,10 +125,23 @@ function ScanPageContent() {
             };
             setFoundProduct(updated);
             addToActivityLog(`Quick Sale: ${foundProduct.name}`);
-            toast.success(`-1 ${foundProduct.name} (Sold)`, {
-              icon: "🚀",
-              duration: 2000,
-            });
+            
+            if (result?.id) {
+              toast.success(`-1 ${foundProduct.name} (Sold)`, {
+                icon: "🚀",
+                duration: 5000,
+                action: {
+                  label: "Invoice",
+                  onClick: () => window.open(`/api/invoice/${result.id}/pdf`, "_blank")
+                }
+              });
+            } else {
+              toast.success(`-1 ${foundProduct.name} (Sold)`, {
+                icon: "🚀",
+                duration: 2000,
+              });
+            }
+            
             setIsSearching(false);
             return;
           } catch (err) {
@@ -191,7 +204,7 @@ function ScanPageContent() {
     if (!foundProduct) return;
 
     try {
-      await addMovement({
+      const result = await addMovement({
         productId: foundProduct.id,
         type: data.type,
         quantity: data.quantity,
@@ -210,7 +223,18 @@ function ScanPageContent() {
 
       const toastMessage = getMovementToastMessage(data.type, data.quantity);
       audioManager.playSuccess();
-      toast.success(toastMessage);
+      
+      if (data.type === "OUT" && result?.id) {
+        toast.success(toastMessage, {
+          duration: 5000,
+          action: {
+            label: "Invoice",
+            onClick: () => window.open(`/api/invoice/${result.id}/pdf`, "_blank"),
+          },
+        });
+      } else {
+        toast.success(toastMessage);
+      }
       setShowMovementModal(false);
     } catch (err) {
       console.error("Movement failed:", err);

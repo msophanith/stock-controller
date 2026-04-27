@@ -11,6 +11,8 @@ import {
   Search,
   X,
   RotateCcw,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/ui/header";
@@ -99,6 +101,7 @@ export default function HistoryPage() {
         weekday: "long",
         day: "numeric",
         month: "long",
+        timeZone: "Asia/Phnom_Penh",
       });
       if (date !== currentDate) {
         currentDate = date;
@@ -217,6 +220,28 @@ export default function HistoryPage() {
                     </div>
                   </div>
                 </div>
+                {m.type === "OUT" && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/60 flex justify-end gap-2">
+                    <a
+                      href={`/api/invoice/${m.id}/image`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary py-1.5 px-3 text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
+                    >
+                      <ImageIcon size={14} />
+                      Photo
+                    </a>
+                    <a
+                      href={`/api/invoice/${m.id}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary py-1.5 px-3 text-xs bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
+                    >
+                      <FileText size={14} />
+                      PDF
+                    </a>
+                  </div>
+                )}
               </div>
             );
           })}
