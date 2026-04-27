@@ -105,6 +105,9 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['pdfkit'],
+  },
 };
 
 module.exports = withPWA(nextConfig);

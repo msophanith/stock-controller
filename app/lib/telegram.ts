@@ -47,24 +47,116 @@ export async function sendTelegramMessage(message: string): Promise<void> {
   }
 }
 
+export async function sendTelegramPhoto(
+  photoBuffer: Buffer,
+  caption: string,
+): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("chat_id", chatId);
+    formData.append("caption", caption);
+    formData.append("parse_mode", "HTML");
+    // Append photo buffer as Blob
+    formData.append("photo", new Blob([photoBuffer as any]), "invoice.png");
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: "POST",
+      body: formData,
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      console.warn(
+        "[Telegram] API error (photo):",
+        res.status,
+        await res.text(),
+      );
+    }
+  } catch (err) {
+    console.warn("[Telegram] Failed to send photo:", err);
+  }
+}
+
+export async function sendTelegramDocument(
+  documentBuffer: Buffer,
+  filename: string,
+  caption: string,
+): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("chat_id", chatId);
+    formData.append("caption", caption);
+    formData.append("parse_mode", "HTML");
+    // Append document buffer as Blob
+    formData.append(
+      "document",
+      new Blob([documentBuffer as any], { type: "application/pdf" }),
+      filename,
+    );
+
+    const res = await fetch(
+      `https://api.telegram.org/bot${token}/sendDocument`,
+      {
+        method: "POST",
+        body: formData,
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+
+    if (!res.ok) {
+      console.warn(
+        "[Telegram] API error (document):",
+        res.status,
+        await res.text(),
+      );
+    }
+  } catch (err) {
+    console.warn("[Telegram] Failed to send document:", err);
+  }
+}
+
 // ─── Stock notification helper ────────────────────────────────────────────────
 
 export type StockChangeType = "IN" | "OUT" | "RETURN" | "ADJUSTMENT";
 
 export interface StockChangePayload {
   type: StockChangeType;
-  product: Pick<Product, "name" | "quantity" | "minStock">;
+  product: Pick<
+    Product,
+    | "name"
+    | "quantity"
+    | "minStock"
+    | "barcode"
+    | "category"
+    | "unit"
+    | "sellPrice"
+  >;
   qty: number;
+  movementId?: string; // used for invoice tracking
 }
 
 /**
  * Builds the correct notification for a stock movement and sends it.
  * Also appends a low-stock alert when stock falls below minStock.
  */
+import { generateInvoiceImage, generateInvoicePDF } from "./invoiceGenerator";
+import type { StockMovement } from "@/types";
+
 export async function notifyStockChange({
   type,
   product,
   qty,
+  movementId,
 }: StockChangePayload): Promise<void> {
   let message: string;
 
@@ -109,7 +201,39 @@ export async function notifyStockChange({
       return;
   }
 
-  await sendTelegramMessage(message);
+  // If OUT (sale), send invoice instead of a plain message
+  if (type === "OUT") {
+    try {
+      const pseudoMovement: StockMovement = {
+        id: movementId || "N/A",
+        productId: "N/A",
+        type: "OUT",
+        quantity: -qty,
+        createdAt: new Date().toISOString(),
+      };
+
+      const [imageBuffer, pdfBuffer] = await Promise.all([
+        generateInvoiceImage(product as Product, pseudoMovement),
+        generateInvoicePDF(product as Product, pseudoMovement),
+      ]);
+
+      await sendTelegramPhoto(
+        imageBuffer,
+        message + "\n\n📄 <i>Invoice Photo Attached</i>",
+      );
+      await sendTelegramDocument(
+        pdfBuffer,
+        `invoice_${movementId || Date.now()}.pdf`,
+        "📄 <i>Invoice PDF</i>",
+      );
+    } catch (err) {
+      console.warn("[Telegram] Failed to generate/send invoices:", err);
+      // Fallback to text
+      await sendTelegramMessage(message);
+    }
+  } else {
+    await sendTelegramMessage(message);
+  }
 
   // ── Low-stock alert (separate message) ────────────────────────────────────
   const threshold = product.minStock ?? 5;
