@@ -40,6 +40,7 @@ export interface StockMovement {
   productId: string;
   type: StockMovementType;
   quantity: number;
+  unitPrice?: number | null;
   note?: string | null;
   reference?: string | null;
   createdAt: Date | string;

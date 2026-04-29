@@ -131,7 +131,7 @@ export function generateInvoicePDF(
 
       items.forEach((item, index) => {
         const qty = Math.abs(item.movement.quantity);
-        const unitPrice = item.product.sellPrice;
+        const unitPrice = item.movement.unitPrice ?? item.product.sellPrice;
         const totalAmount = qty * unitPrice;
         grandTotal += totalAmount;
 
@@ -245,7 +245,8 @@ export async function generateInvoiceImage(
 
   let grandTotal = 0;
   items.forEach((item) => {
-    grandTotal += Math.abs(item.movement.quantity) * item.product.sellPrice;
+    const unitPrice = item.movement.unitPrice ?? item.product.sellPrice;
+    grandTotal += Math.abs(item.movement.quantity) * unitPrice;
   });
 
   const regularFontPath = path.join(
@@ -431,7 +432,7 @@ export async function generateInvoiceImage(
 
             {items.map((item, idx) => {
               const qty = Math.abs(item.movement.quantity);
-              const unitPrice = item.product.sellPrice;
+              const unitPrice = item.movement.unitPrice ?? item.product.sellPrice;
               const totalAmount = qty * unitPrice;
               return (
                 <div

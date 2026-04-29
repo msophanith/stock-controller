@@ -106,6 +106,7 @@ export default function ProductDetailPage() {
   async function handleMovement(data: {
     type: "IN" | "OUT" | "ADJUSTMENT" | "RETURN";
     quantity: number;
+    unitPrice?: number;
     note?: string;
     reference?: string;
   }) {
@@ -116,6 +117,7 @@ export default function ProductDetailPage() {
         productId: product.id,
         type: data.type,
         quantity: data.quantity,
+        unitPrice: data.unitPrice,
         note: data.note ?? null,
         reference: data.reference ?? null,
       });
@@ -400,6 +402,14 @@ export default function ProductDetailPage() {
                             <p className="text-xs text-slate-500 dark:text-slate-600 font-mono">
                               {m.reference}
                             </p>
+                          )}
+                          {m.unitPrice && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">Price</span>
+                              <p className="text-xs font-price font-bold text-slate-700 dark:text-slate-300">
+                                {formatCurrency(m.unitPrice)}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </div>

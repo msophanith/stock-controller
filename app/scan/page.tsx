@@ -37,7 +37,6 @@ import type { Product, StockMovementType } from "@/types";
 import { audioManager } from "@/lib/audio-manager";
 import { useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 
-
 export const dynamic = "force-dynamic";
 
 type ScanMode = "camera" | "keyboard" | "hardware";
@@ -99,8 +98,9 @@ function ScanPageContent() {
       if (isSearching) return;
 
       const now = Date.now();
-      const isRepeat = barcode === lastScannedBarcode && now - lastScanTime < 5000;
-      
+      const isRepeat =
+        barcode === lastScannedBarcode && now - lastScanTime < 5000;
+
       setLastScanTime(now);
       setIsSearching(true);
       setLastScannedBarcode(barcode);
@@ -117,7 +117,7 @@ function ScanPageContent() {
               quantity: 1,
               note: "Quick Scan (Manual)",
             });
-            
+
             const updated = {
               ...foundProduct,
               quantity: Math.max(0, foundProduct.quantity - 1),
@@ -125,15 +125,16 @@ function ScanPageContent() {
             };
             setFoundProduct(updated);
             addToActivityLog(`Quick Sale: ${foundProduct.name}`);
-            
+
             if (result?.id) {
               toast.success(`-1 ${foundProduct.name} (Sold)`, {
                 icon: "🚀",
                 duration: 5000,
                 action: {
                   label: "Invoice",
-                  onClick: () => window.open(`/api/invoice/${result.id}/pdf`, "_blank")
-                }
+                  onClick: () =>
+                    window.open(`/api/invoice/${result.id}/pdf`, "_blank"),
+                },
               });
             } else {
               toast.success(`-1 ${foundProduct.name} (Sold)`, {
@@ -141,7 +142,7 @@ function ScanPageContent() {
                 duration: 2000,
               });
             }
-            
+
             setIsSearching(false);
             return;
           } catch (err) {
@@ -198,6 +199,7 @@ function ScanPageContent() {
   async function handleMovement(data: {
     type: MovementType | "RETURN";
     quantity: number;
+    unitPrice?: number;
     note?: string;
     reference?: string;
   }) {
@@ -208,6 +210,7 @@ function ScanPageContent() {
         productId: foundProduct.id,
         type: data.type,
         quantity: data.quantity,
+        unitPrice: data.unitPrice,
         note: data.note ?? null,
         reference: data.reference ?? null,
       });
@@ -223,13 +226,14 @@ function ScanPageContent() {
 
       const toastMessage = getMovementToastMessage(data.type, data.quantity);
       audioManager.playSuccess();
-      
+
       if (data.type === "OUT" && result?.id) {
         toast.success(toastMessage, {
           duration: 5000,
           action: {
             label: "Invoice",
-            onClick: () => window.open(`/api/invoice/${result.id}/pdf`, "_blank"),
+            onClick: () =>
+              window.open(`/api/invoice/${result.id}/pdf`, "_blank"),
           },
         });
       } else {

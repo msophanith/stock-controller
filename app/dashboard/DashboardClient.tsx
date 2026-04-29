@@ -72,12 +72,13 @@ export default function DashboardClient({
 
     const totalRevenue = sales.reduce(
       (acc: number, sale) =>
-        acc + sale.quantity * (sale.product?.sellPrice || 0),
+        acc + sale.quantity * (sale.unitPrice || sale.product?.sellPrice || 0),
       0,
     );
 
     const totalReturnAmount = returns.reduce(
-      (acc: number, ret) => acc + ret.quantity * (ret.product?.sellPrice || 0),
+      (acc: number, ret) =>
+        acc + ret.quantity * (ret.unitPrice || ret.product?.sellPrice || 0),
       0,
     );
 

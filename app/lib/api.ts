@@ -87,9 +87,6 @@ export async function apiGetTodaySales(): Promise<StockMovement[]> {
 export async function apiAddMovement(
   movement: Partial<StockMovement>,
 ): Promise<StockMovement> {
-  // We use the sync endpoint or a dedicated movements endpoint?
-  // Let's create a dedicated one in movements/route.ts if not exists.
-  // Actually, I already have /api/movements [GET]. Let's add [POST].
   return apiFetch<StockMovement>("/api/movements", {
     method: "POST",
     body: JSON.stringify(movement),

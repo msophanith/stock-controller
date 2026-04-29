@@ -96,9 +96,19 @@ export function useBarcodeScannerListener(
         bufferRef.current = "";
       }
 
+      // Check if this looks like a scanner (fast typing)
+      if (gap <= maxKeystrokeGapMs) {
+        (window as any).__isScannerActive = true;
+        clearTimeout((window as any).__scannerTimeout);
+        (window as any).__scannerTimeout = setTimeout(() => {
+          (window as any).__isScannerActive = false;
+        }, 100);
+      }
+
       // Enter key = scanner finished sending barcode
       if (e.key === "Enter") {
         e.preventDefault();
+        e.stopImmediatePropagation();
         clearTimeout(flushTimerRef.current);
         flush();
         return;

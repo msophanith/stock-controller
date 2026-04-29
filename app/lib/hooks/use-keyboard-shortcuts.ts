@@ -37,8 +37,13 @@ export function useKeyboardShortcuts(
       const handler =
         shortcuts[event.key] || shortcuts[event.key.toUpperCase()];
       if (handler) {
+        // Wait briefly to see if this is actually part of a fast scanner sequence
+        setTimeout(() => {
+          if (!(window as any).__isScannerActive) {
+            handler(event);
+          }
+        }, 50);
         event.preventDefault();
-        handler(event);
       }
 
       // Handle special combos like Cmd+K or Ctrl+K for search (stub)

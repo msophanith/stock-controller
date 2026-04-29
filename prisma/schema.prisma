@@ -31,6 +31,7 @@ model StockMovement {
   productId   String
   type        String
   quantity    Int
+  unitPrice   Float?   // Price per unit for this specific movement
   note        String?
   reference   String?
   createdAt   DateTime @default(now())

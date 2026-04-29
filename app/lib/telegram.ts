@@ -1,7 +1,7 @@
 // lib/telegram.ts
 // Reusable Telegram Bot notification service — server-side only
 
-import type { Product } from "@/types";
+import type { Product, StockMovement } from "@/types";
 
 // ─── Core sender ──────────────────────────────────────────────────────────────
 
@@ -142,6 +142,7 @@ export interface StockChangePayload {
     | "sellPrice"
   >;
   qty: number;
+  unitPrice?: number;
   movementId?: string; // used for invoice tracking
 }
 
@@ -149,13 +150,13 @@ export interface StockChangePayload {
  * Builds the correct notification for a stock movement and sends it.
  * Also appends a low-stock alert when stock falls below minStock.
  */
-import { generateInvoiceImage, generateInvoicePDF } from "./invoiceGenerator";
-import type { StockMovement } from "@/types";
+import { generateInvoicePDF } from "./invoiceGenerator";
 
 export async function notifyStockChange({
   type,
   product,
   qty,
+  unitPrice,
   movementId,
 }: StockChangePayload): Promise<void> {
   let message: string;
@@ -209,22 +210,19 @@ export async function notifyStockChange({
         productId: "N/A",
         type: "OUT",
         quantity: -qty,
+        unitPrice: unitPrice,
         createdAt: new Date().toISOString(),
       };
 
-      const [imageBuffer, pdfBuffer] = await Promise.all([
-        generateInvoiceImage(product as Product, pseudoMovement),
-        generateInvoicePDF(product as Product, pseudoMovement),
-      ]);
-
-      await sendTelegramPhoto(
-        imageBuffer,
-        message + "\n\n📄 <i>Invoice Photo Attached</i>",
+      const pdfBuffer = await generateInvoicePDF(
+        product as Product,
+        pseudoMovement,
       );
+
       await sendTelegramDocument(
         pdfBuffer,
         `invoice_${movementId || Date.now()}.pdf`,
-        "📄 <i>Invoice PDF</i>",
+        message + "\n\n📄 <i>Invoice PDF Attached</i>",
       );
     } catch (err) {
       console.warn("[Telegram] Failed to generate/send invoices:", err);

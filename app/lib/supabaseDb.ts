@@ -162,6 +162,7 @@ export async function addMovement(
         productId: movement.productId,
         type: movement.type,
         quantity: movement.quantity,
+        unitPrice: movement.unitPrice,
         note: movement.note,
         reference: movement.reference,
       })
@@ -194,6 +195,7 @@ export async function addMovement(
           type: movement.type as StockMovementType,
           product: { ...product, quantity: newQty },
           qty: movement.quantity || 0,
+          unitPrice: movement.unitPrice || undefined,
           movementId: dbMovement.id,
         });
       }
