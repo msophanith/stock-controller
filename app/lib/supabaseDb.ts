@@ -3,7 +3,7 @@
 import { supabase as supabaseAdmin } from "./supabaseAdmin";
 import type { Product, StockMovement, StockMovementType } from "@/types";
 import { v4 as uuidv4 } from "uuid";
-import { notifyStockChange } from "./telegram";
+import { notifyStockChange, notifyMultipleStockChange } from "./telegram";
 
 // ─── Product helpers ──────────────────────────────────────────────────────────
 
@@ -152,6 +152,7 @@ export async function getLowStockProducts(
 
 export async function addMovement(
   movement: Partial<StockMovement>,
+  options: { silent?: boolean } = {},
 ): Promise<StockMovement> {
   try {
     // 1. Create movement
@@ -191,19 +192,64 @@ export async function addMovement(
         // Must be awaited — Next.js serverless terminates the function as soon
         // as a response is sent; "void" would be killed before Telegram responds.
         // notifyStockChange catches all its own errors, so this is safe.
-        await notifyStockChange({
-          type: movement.type as StockMovementType,
-          product: { ...product, quantity: newQty },
-          qty: movement.quantity || 0,
-          unitPrice: movement.unitPrice || undefined,
-          movementId: dbMovement.id,
-        });
+        if (!options.silent) {
+          await notifyStockChange({
+            type: movement.type as StockMovementType,
+            product: { ...product, quantity: newQty },
+            qty: movement.quantity || 0,
+            unitPrice: movement.unitPrice || undefined,
+            movementId: dbMovement.id,
+          });
+        }
       }
     }
 
     return dbMovement as unknown as StockMovement;
   } catch (error) {
     console.error("Error adding movement:", error);
+    throw error;
+  }
+}
+
+export async function addMultipleMovements(
+  movements: Partial<StockMovement>[],
+): Promise<StockMovement[]> {
+  try {
+    const results: StockMovement[] = [];
+
+    // We process them one by one to ensure each product quantity is updated correctly.
+    // We set silent: true to avoid sending individual Telegram messages for each item.
+    for (const m of movements) {
+      const res = await addMovement(m, { silent: true });
+      results.push(res);
+    }
+
+    // After all movements are added, send ONE bulk notification to Telegram
+    if (results.length > 0) {
+      // Fetch full product details for the notification
+      const itemsWithDetails = await Promise.all(
+        results.map(async (m) => {
+          const product = await getProductById(m.productId);
+          return { product: product!, movement: m };
+        }),
+      );
+
+      const totalAmount = itemsWithDetails.reduce((sum, item) => {
+        const qty = Math.abs(item.movement.quantity);
+        const price = item.movement.unitPrice ?? item.product.sellPrice;
+        return sum + qty * price;
+      }, 0);
+
+      await notifyMultipleStockChange({
+        type: results[0].type as any,
+        items: itemsWithDetails,
+        totalAmount,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Error adding multiple movements:", error);
     throw error;
   }
 }

@@ -92,3 +92,12 @@ export async function apiAddMovement(
     body: JSON.stringify(movement),
   });
 }
+
+export async function apiAddMultipleMovements(
+  movements: Partial<StockMovement>[],
+): Promise<StockMovement[]> {
+  return apiFetch<StockMovement[]>("/api/movements/bulk", {
+    method: "POST",
+    body: JSON.stringify(movements),
+  });
+}

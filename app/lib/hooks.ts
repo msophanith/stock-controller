@@ -134,3 +134,15 @@ export function useBarcodeScannerListener(
     };
   }, [enabled, maxKeystrokeGapMs, flush]);
 }
+
+/**
+ * Returns true if the component has mounted on the client.
+ * Use this to avoid hydration mismatches for state that is client-only (like localStorage stores).
+ */
+export function useHasMounted() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  return hasMounted;
+}

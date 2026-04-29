@@ -6,6 +6,7 @@ import {
   apiSaveProduct,
   apiDeleteProduct,
   apiAddMovement,
+  apiAddMultipleMovements,
   apiGetRecentMovements,
   apiGetTodaySales,
 } from "./api";
@@ -107,6 +108,19 @@ export function useAddMovement() {
         });
       }
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.products });
+    },
+  });
+}
+
+export function useAddMultipleMovements() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: apiAddMultipleMovements,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.movements });
+      queryClient.invalidateQueries({ queryKey: ["movements", "today"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.products });
+      // We don't know all product IDs easily here, but invalidating all products is safe
     },
   });
 }

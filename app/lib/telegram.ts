@@ -146,6 +146,15 @@ export interface StockChangePayload {
   movementId?: string; // used for invoice tracking
 }
 
+export interface MultiStockChangePayload {
+  type: StockChangeType;
+  items: {
+    product: Product;
+    movement: StockMovement;
+  }[];
+  totalAmount: number;
+}
+
 /**
  * Builds the correct notification for a stock movement and sends it.
  * Also appends a low-stock alert when stock falls below minStock.
@@ -251,5 +260,85 @@ export async function notifyStockChange({
         `Product: ${product.name} is now out of stock!`,
       ].join("\n"),
     );
+  }
+}
+
+/**
+ * Sends a single notification for multiple stock movements (bulk sale).
+ */
+export async function notifyMultipleStockChange({
+  type,
+  items,
+}: MultiStockChangePayload): Promise<void> {
+  if (items.length === 0) return;
+
+  const count = items.length;
+  const totalQty = items.reduce(
+    (sum, item) => sum + Math.abs(item.movement.quantity),
+    0,
+  );
+  const totalAmount = items.reduce((sum, item) => {
+    const qty = Math.abs(item.movement.quantity);
+    const price = item.movement.unitPrice ?? item.product.sellPrice;
+    return sum + qty * price;
+  }, 0);
+
+  let message = "";
+  if (type === "OUT") {
+    message = [
+      `🛒 <b>BULK SALE COMPLETED</b>`,
+      `Total Items: ${count}`,
+      `Total Units: ${totalQty}`,
+      `Total Amount: $${totalAmount.toFixed(2)}`,
+    ].join("\n");
+  } else {
+    message = [
+      `📦 <b>BULK ${type} COMPLETED</b>`,
+      `Total Items: ${count}`,
+      `Total Units: ${totalQty}`,
+    ].join("\n");
+  }
+
+  // If OUT (sale), send bulk invoice
+  if (type === "OUT") {
+    try {
+      const pdfBuffer = await generateInvoicePDF(
+        items.map((i) => ({ product: i.product, movement: i.movement })),
+      );
+
+      await sendTelegramDocument(
+        pdfBuffer,
+        `bulk_invoice_${Date.now()}.pdf`,
+        message + "\n\n📄 <i>Bulk Invoice PDF Attached</i>",
+      );
+    } catch (err) {
+      console.warn("[Telegram] Failed to generate/send bulk invoice:", err);
+      await sendTelegramMessage(message);
+    }
+  } else {
+    await sendTelegramMessage(message);
+  }
+
+  // Still send low-stock alerts if needed for each product
+  for (const item of items) {
+    const { product } = item;
+    const threshold = product.minStock ?? 5;
+    if (product.quantity <= threshold && product.quantity > 0) {
+      await sendTelegramMessage(
+        [
+          `⚠️ <b>LOW STOCK ALERT</b>`,
+          `Product: ${product.name}`,
+          `Remaining: ${product.quantity} unit(s)`,
+          `Minimum: ${threshold}`,
+        ].join("\n"),
+      );
+    } else if (product.quantity === 0) {
+      await sendTelegramMessage(
+        [
+          `🚨 <b>OUT OF STOCK</b>`,
+          `Product: ${product.name} is now out of stock!`,
+        ].join("\n"),
+      );
+    }
   }
 }

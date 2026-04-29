@@ -9,13 +9,14 @@ import {
   ScanLine,
   History,
   Settings,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/products', icon: Package, label: 'Products' },
-  { href: '/scan', icon: ScanLine, label: 'Scan', primary: true },
+  { href: '/sell', icon: ShoppingCart, label: 'Sell', primary: true },
   { href: '/history', icon: History, label: 'History' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];

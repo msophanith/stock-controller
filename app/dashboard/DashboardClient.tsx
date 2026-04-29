@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ScanLine,
   Plus,
+  ShoppingCart,
 } from "lucide-react";
 import { useProductStore } from "@/store/app-store";
 import { useProducts, useTodaySales } from "@/lib/queries";
@@ -164,7 +165,19 @@ export default function DashboardClient({
 
   return (
     <div className="min-h-screen bg-transparent">
-      <Header title="Accessories Stock" subtitle="Car Accessories Inventory" />
+      <Header 
+        title="Accessories Stock" 
+        subtitle="Car Accessories Inventory" 
+        action={
+          <Link 
+            href="/sell" 
+            className="btn-primary bg-orange-500 hover:bg-orange-600 h-10 px-4 rounded-2xl gap-2 shadow-lg shadow-orange-500/20"
+          >
+            <ShoppingCart size={18} />
+            <span className="hidden sm:inline">Sell</span>
+          </Link>
+        }
+      />
 
       <main className="px-4 pb-32 pt-4 space-y-8 page-enter">
         {/* Modern Hero Card */}
@@ -251,8 +264,11 @@ export default function DashboardClient({
             <p className="text-sm text-slate-500 dark:text-slate-600 mt-1 mb-6">
               Start by scanning a barcode or adding a product manually
             </p>
-            <div className="flex gap-3">
-              <Link href="/scan" className="btn-primary">
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link href="/sell" className="btn-primary bg-orange-500 hover:bg-orange-600">
+                <Plus size={18} /> Sell Multiple
+              </Link>
+              <Link href="/scan" className="btn-secondary">
                 <ScanLine size={18} /> Scan Barcode
               </Link>
               <Link href="/products/new" className="btn-secondary">
