@@ -3,6 +3,8 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { v4 as uuidv4 } from "uuid";
 
+import { formatDistanceToNow } from "date-fns";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -26,19 +28,27 @@ export function formatDate(date: Date | string | null | undefined): string {
   }).format(new Date(date));
 }
 
-export function formatRelativeDate(date: Date | string): string {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+export function formatRelativeDate(
+  date: Date | string | null | undefined,
+): string {
+  if (!date) return "—";
 
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return formatDate(date);
+  let d: Date;
+  if (typeof date === "string") {
+    // Force UTC if no timezone info is present to prevent local time assumption
+    const utcDate =
+      date.includes("T") && !date.endsWith("Z") && !date.includes("+")
+        ? `${date}Z`
+        : date;
+    d = new Date(utcDate);
+  } else {
+    d = date;
+  }
+
+  // Check if the date is valid
+  if (isNaN(d.getTime())) return "—";
+
+  return formatDistanceToNow(d, { addSuffix: true });
 }
 
 export function generateId(): string {
@@ -190,8 +200,12 @@ export function exportSalesToCSV(sales: any[], title: string = "sales"): void {
   // Map sales to CSV rows
   const rows = sales.map((s) => {
     const d = new Date(s.createdAt);
-    const dateStr = d.toLocaleDateString("en-GB", { timeZone: "Asia/Phnom_Penh" });
-    const timeStr = d.toLocaleTimeString("en-GB", { timeZone: "Asia/Phnom_Penh" });
+    const dateStr = d.toLocaleDateString("en-GB", {
+      timeZone: "Asia/Phnom_Penh",
+    });
+    const timeStr = d.toLocaleTimeString("en-GB", {
+      timeZone: "Asia/Phnom_Penh",
+    });
     const productName = s.product?.name || "Unknown Product";
     const barcode = s.product?.barcode || "";
     const quantity = s.quantity || 0;

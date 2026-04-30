@@ -9,6 +9,8 @@ import { ProductSearchBar } from "./_components/product-search-bar";
 import { ProductAdvancedFilters } from "./_components/product-advanced-filters";
 import { ProductList } from "./_components/product-list";
 
+import { BulkImportButton } from "./_components/bulk-import-button";
+
 export const dynamic = "force-dynamic";
 
 export default function ProductsPage() {
@@ -54,10 +56,13 @@ export default function ProductsPage() {
         title="Products"
         subtitle={`${filtered.length} of ${products.length} items`}
         action={
-          <Link href="/products/new" className="btn-primary py-2 px-3 text-sm">
-            <Plus size={16} />
-            Add
-          </Link>
+          <div className="flex items-center gap-2">
+            <BulkImportButton />
+            <Link href="/products/new" className="btn-primary py-2 px-3 text-sm">
+              <Plus size={16} />
+              Add
+            </Link>
+          </div>
         }
       />
 
