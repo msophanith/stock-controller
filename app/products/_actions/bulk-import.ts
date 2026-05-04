@@ -92,8 +92,13 @@ export async function bulkImportProducts(
           minStock: product.minStock,
           shelf: product.shelf,
           unit: product.unit,
+          updatedAt: new Date(),
         },
-        create: product,
+        create: {
+          ...product,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       });
       result.imported++;
     } catch (error: any) {

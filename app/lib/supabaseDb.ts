@@ -75,6 +75,8 @@ export async function createProduct(
         shelf: product.shelf,
         imageUrl: product.imageUrl,
         unit: product.unit ?? "pcs",
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       })
       .select()
       .single();
