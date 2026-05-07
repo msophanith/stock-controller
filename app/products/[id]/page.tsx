@@ -405,7 +405,9 @@ export default function ProductDetailPage() {
                           )}
                           {m.unitPrice && (
                             <div className="flex items-center gap-1.5 mt-1">
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">Price</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
+                                Price
+                              </span>
                               <p className="text-xs font-price font-bold text-slate-700 dark:text-slate-300">
                                 {formatCurrency(m.unitPrice)}
                               </p>
@@ -430,7 +432,7 @@ export default function ProductDetailPage() {
                     </div>
                     {m.type === "OUT" && (
                       <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/60 flex justify-end gap-2">
-                        <a
+                        {/* <a
                           href={`/api/invoice/${m.id}/image`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -438,7 +440,7 @@ export default function ProductDetailPage() {
                         >
                           <ImageIcon size={14} />
                           Photo
-                        </a>
+                        </a> */}
                         <a
                           href={`/api/invoice/${m.id}/pdf`}
                           target="_blank"
@@ -446,7 +448,7 @@ export default function ProductDetailPage() {
                           className="btn-secondary py-1.5 px-3 text-xs bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
                         >
                           <FileText size={14} />
-                          PDF
+                          View Invoice
                         </a>
                       </div>
                     )}
